@@ -8,6 +8,22 @@ export interface Stats {
   decisions: number
   decisions_by_outcome: Record<string, number>
   emails_sent: number
+  escalations_open: number
+}
+
+export interface Escalation {
+  decision_id: string
+  customer_id: string
+  customer_name: string | null
+  city_tier: string | null
+  language_pref: string | null
+  monthly_income: number | null
+  signal: string
+  hypothesis: string | null
+  reason: string | null
+  confidence: number | null
+  created_at: string | null
+  rm_status: string
 }
 
 export interface Score {
@@ -50,6 +66,7 @@ export interface Decision {
   outcome: string
   product_id: string | null
   created_at: string | null
+  rm_status: string | null
   action: Action | null
 }
 
@@ -128,4 +145,8 @@ export const api = {
   customers: () => get<CustomerSummary[]>('/customers'),
   customer: (id: string) => get<CustomerDetail>(`/customers/${id}`),
   runPipeline: () => post<{ ok: boolean }>('/pipeline/run-all'),
+  // days=0 revisits every WAIT now (demo pacing); production would schedule this daily.
+  runReengage: () => post<{ ok: boolean; reengaged: number; still_waiting: number }>('/pipeline/reengage?days=0'),
+  escalations: () => get<Escalation[]>('/escalations'),
+  resolveEscalation: (id: string) => post<{ ok: boolean }>(`/escalations/${id}/resolve`),
 }

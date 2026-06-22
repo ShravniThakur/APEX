@@ -166,11 +166,18 @@ function Meter({ value, compact }: { value: number; compact?: boolean }) {
 }
 
 function DecisionCard({ d }: { d: Decision }) {
+  const isReengage = (d.trigger_ref ?? '').startsWith('reengage:')
   return (
     <Card className="p-5">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Badge className={outcomeStyle[d.outcome] ?? 'bg-slate-100 text-slate-600'}>{d.outcome.toUpperCase()}</Badge>
+        {isReengage && <Badge className="bg-violet-100 text-violet-700">re-engagement</Badge>}
         {d.product_id && <Badge className="bg-slate-100 text-slate-600">{d.product_id}</Badge>}
+        {d.outcome === 'escalate' && (
+          <Badge className={d.rm_status === 'resolved' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}>
+            RM {d.rm_status ?? 'open'}
+          </Badge>
+        )}
         {d.confidence != null && (
           <span className="text-xs text-slate-400">confidence {(d.confidence * 100).toFixed(0)}%</span>
         )}

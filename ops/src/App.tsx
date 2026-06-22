@@ -2,6 +2,7 @@ import { NavLink, Route, Routes } from 'react-router-dom'
 import Overview from './pages/Overview'
 import Customers from './pages/Customers'
 import CustomerDetail from './pages/CustomerDetail'
+import Escalations from './pages/Escalations'
 
 export default function App() {
   return (
@@ -12,6 +13,7 @@ export default function App() {
         <nav className="space-y-1 text-sm">
           <NavItem to="/" label="Overview" />
           <NavItem to="/customers" label="Customers" />
+          <NavItem to="/escalations" label="Escalations" />
         </nav>
         <p className="mt-10 text-[11px] leading-relaxed text-slate-500">
           Internal view — what the Analyser agent has done across customers: reasoning traces,
@@ -24,6 +26,7 @@ export default function App() {
             <Route path="/" element={<Overview />} />
             <Route path="/customers" element={<Customers />} />
             <Route path="/customers/:id" element={<CustomerDetail />} />
+            <Route path="/escalations" element={<Escalations />} />
           </Routes>
         </div>
       </main>
