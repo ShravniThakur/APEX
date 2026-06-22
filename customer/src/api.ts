@@ -54,6 +54,7 @@ export interface Suggestion {
   open_url: string
   adopt_url: string
   dismiss_url: string
+  why_url: string
   response: string | null
 }
 
@@ -98,6 +99,8 @@ export const api = {
   customers: () => get<CustomerLite[]>('/customers'),
   products: () => get<Product[]>('/products'),
   insights: (id: string) => get<Insights>(`/insights/${id}`),
+  explain: (whyUrl: string) => get<{ explanation: string; declined: boolean }>(
+    whyUrl.replace(/^https?:\/\/[^/]+/, '')),
   chat: (body: { mode: 'guide' | 'concierge'; customer_id?: string; messages: ChatMessage[] }) =>
     postJson<{ reply: string }>('/chat', body),
   transcribe: (blob: Blob) => {

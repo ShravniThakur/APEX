@@ -8,13 +8,24 @@ const inr = (n: number | null | undefined) =>
 export default function FinancialSnapshot({ customerId }: { customerId: string }) {
   const [data, setData] = useState<Insights | null>(null)
   const [err, setErr] = useState<string | null>(null)
+  const [why, setWhy] = useState<Record<string, string>>({})
 
   const load = () => api.insights(customerId).then(setData).catch((e) => setErr(String(e)))
   useEffect(() => { load() }, [customerId])
+  // reset any open explanations when switching customer
+  useEffect(() => { setWhy({}) }, [customerId])
 
   const respond = async (url: string) => {
     try { await fetch(url) } catch { /* ignore */ }
     load()
+  }
+
+  const explain = async (actionId: string, whyUrl: string) => {
+    if (why[actionId]) { setWhy((w) => { const n = { ...w }; delete n[actionId]; return n }); return }
+    try {
+      const r = await api.explain(whyUrl)
+      setWhy((w) => ({ ...w, [actionId]: r.explanation }))
+    } catch { /* ignore */ }
   }
 
   if (err) return null
@@ -78,7 +89,16 @@ export default function FinancialSnapshot({ customerId }: { customerId: string }
                     className="rounded-lg px-3 py-1.5 text-slate-400 hover:bg-slate-100">
                     Not interested
                   </button>
+                  <button onClick={() => explain(s.action_id, s.why_url)}
+                    className="ml-auto rounded-lg px-3 py-1.5 text-slate-500 underline-offset-2 hover:underline">
+                    Why am I seeing this?
+                  </button>
                 </div>
+                {why[s.action_id] && (
+                  <p className="mt-3 border-t border-slate-100 pt-3 text-sm italic text-slate-600">
+                    {why[s.action_id]}
+                  </p>
+                )}
               </Card>
             ))}
           </div>
