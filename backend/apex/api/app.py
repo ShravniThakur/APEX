@@ -153,6 +153,7 @@ def insights(customer_id: str, db: Session = Depends(get_db)):
             "message_text": a.message_text,
             "product_id": d.product_id if d else None,
             "open_url": base, "adopt_url": f"{base}/adopt", "dismiss_url": f"{base}/dismiss",
+            "why_url": f"{PUBLIC_URL}/explain/{a.action_id}",
             "response": oc.response_type if oc else None,
         })
 
@@ -163,6 +164,63 @@ def insights(customer_id: str, db: Session = Depends(get_db)):
         "spend_by_category": [{"category": c, "amount": round(v, 2)} for c, v in top],
         "suggestions": suggestions,
     }
+
+
+@app.get("/explain/{action_id}")
+def explain_action(action_id: str, db: Session = Depends(get_db)):
+    """Customer-facing 'Why am I seeing this?' — a constrained, plain-language explanation built ONLY
+    from a fact the customer can already see in their own account. If the outreach traces back to a
+    vulnerable moment, it deliberately DECLINES to elaborate, so the customer can't reverse-engineer
+    that something sensitive was detected (APEX_README §6). Defense in depth: the decline check is in
+    code; the LLM only ever sees the non-sensitive case."""
+    from ..agent import guardrails, llm
+
+    a = db.get(Action, action_id)
+    if a is None:
+        raise HTTPException(404, "action not found")
+    dec = db.get(Decision, a.decision_id)
+    cust = db.get(Customer, a.customer_id)
+    trigger = (dec.trigger_ref or "") if dec else ""
+    signal_type, _, ref_id = trigger.partition(":")
+
+    # Sensitive if the trigger is itself a vulnerability signal, the outreach is a re-engagement
+    # (which only ever stems from a held-back / sensitive moment), or the customer is in a vulnerable
+    # moment right now (an active life_event, or severe financial stress).
+    sensitive = signal_type in guardrails.VULNERABILITY_SIGNALS or trigger.startswith("reengage:")
+    if not sensitive:
+        active = {s.signal_type for s in db.query(Signal).filter(Signal.customer_id == a.customer_id)}
+        stress_row = db.query(Score).filter(
+            Score.customer_id == a.customer_id, Score.score_type == "stress").first()
+        stress = (stress_row.value or {}).get("score", 0.0) if stress_row else 0.0
+        sensitive = bool(active & guardrails.VULNERABILITY_SIGNALS) or stress >= guardrails.SEVERE_STRESS
+
+    if sensitive:
+        return {"action_id": action_id, "declined": True,
+                "explanation": "We reached out as part of looking out for your overall financial "
+                               "wellbeing — there's nothing you need to read into it, and nothing you "
+                               "have to do. We're here whenever you'd like to talk something through."}
+
+    source_ref = None
+    if ref_id:
+        sig = db.get(Signal, ref_id)
+        source_ref = sig.source_ref if sig else None
+    product = None
+    if dec and dec.product_id:
+        p = db.get(Product, dec.product_id)
+        if p:
+            product = {"name": p.name, "description": p.description}
+    payload = {
+        "customer": {"first_name": (cust.name.split()[0] if cust else "there"),
+                     "language_pref": (cust.language_pref if cust else None)},
+        "signal_type": signal_type or "your account activity",
+        "source_ref": source_ref, "product": product,
+    }
+    text = llm.explain(payload)
+    if not text:                                        # graceful degrade (no key / failure)
+        basis = source_ref or (signal_type or "recent activity").replace("_", " ")
+        text = (f"You're seeing this because of something in your own account ({basis}). "
+                "It's only a suggestion — act on it any time, or ignore it.")
+    return {"action_id": action_id, "declined": False, "explanation": text}
 
 
 # --------------------------------------------------------------------------- #

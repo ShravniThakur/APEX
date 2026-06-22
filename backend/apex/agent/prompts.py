@@ -92,6 +92,27 @@ def build_reengage_prompt(payload: dict) -> str:
     )
 
 
+def build_explain_prompt(payload: dict) -> str:
+    """Customer-facing "why am I seeing this?" — a constrained explanation built ONLY from a fact the
+    customer can already see in their own account. The sensitive/vulnerability case never reaches this
+    prompt (the endpoint declines before calling the LLM), so here we can always name the visible
+    reason plainly."""
+    c = payload["customer"]
+    lang = LANG_NAMES.get(c.get("language_pref"), "English")
+    fact = payload.get("source_ref") or payload["signal_type"].replace("_", " ")
+    p = payload.get("product")
+    prod_line = (f"It points toward this kind of help (describe the life benefit, never name a "
+                 f"product): {p['name']} — {p.get('description', '')}." if p else "")
+    return (
+        f"The customer ({c.get('first_name')}) asked: \"Why am I seeing this?\"\n"
+        f"APEX reached out because of something visible in their OWN account: {fact}.\n"
+        f"{prod_line}\n\n"
+        f"Explain in {lang}, in 1-2 calm sentences, why they are seeing this — using ONLY that fact "
+        f"about their own account. Do NOT mention internal scores, models, predictions, or anything "
+        f"inferred or sensitive. No jargon, no pressure, no links. Output only the explanation."
+    )
+
+
 def build_compose_prompt(payload: dict) -> str:
     c = payload["customer"]
     lang = LANG_NAMES.get(c.get("language_pref"), "English")

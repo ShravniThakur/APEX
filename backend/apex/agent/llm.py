@@ -9,8 +9,8 @@ from __future__ import annotations
 from ..config import GROQ_API_KEY, GROQ_MODEL
 from ._shared import get_client
 from .prompts import (
-    SYSTEM_PROMPT, build_compose_prompt, build_critique_prompt, build_hypothesise_prompt,
-    build_reengage_prompt,
+    SYSTEM_PROMPT, build_compose_prompt, build_critique_prompt, build_explain_prompt,
+    build_hypothesise_prompt, build_reengage_prompt,
 )
 
 
@@ -45,3 +45,7 @@ def compose(payload: dict) -> str:
 
 def reengage(payload: dict) -> str:
     return _chat(build_reengage_prompt(payload), temperature=0.4)
+
+
+def explain(payload: dict) -> str:
+    return _chat(build_explain_prompt(payload), temperature=0.3)
