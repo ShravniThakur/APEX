@@ -509,8 +509,10 @@ so Concierge can no longer suggest something ineligible, held, or inappropriate.
 model can only ask for "balance," not "balance for customer X" — so Concierge structurally **cannot
 read another customer's money.** (The customer site also shows a "money at a glance" snapshot above
 the chat — balance, income, a light spending summary, and **What APEX suggests** (the agent's own
-act-decisions, already ethics-filtered). Deliberately *not* a budgeting tracker — APEX_README §14
-rejects that.)
+act-decisions, already ethics-filtered). Each suggestion has a **"Why am I seeing this?"** link backed
+by `/explain` — a plain-language reason drawn only from a fact the customer can already see, which
+*declines* to elaborate on anything sensitive. Deliberately *not* a budgeting tracker — APEX_README
+§14 rejects that.)
 
 **The looping graph (where LangGraph earns its keep).** Two nodes that cycle:
 
@@ -680,7 +682,10 @@ makes it interactive — it's what the two frontends (`ops/`, `customer/`) talk 
 
 - **`api/app.py`** — a FastAPI app (run with `uvicorn apex.api.app:app`). It exposes:
   - **read endpoints** the bank dashboard needs — `/stats`, `/customers`, `/customers/{id}` (the full
-    reasoning trace), `/products`, `/insights/{id}` (the customer money-at-a-glance + suggestions);
+    reasoning trace), `/products`, `/insights/{id}` (the customer money-at-a-glance + suggestions), and
+    `/explain/{action_id}` (the customer-facing "why am I seeing this?" — explains from a fact the
+    customer can already see, but **declines** if the outreach traces back to a vulnerable moment, so
+    nothing sensitive can be reverse-engineered; the decline is in code, before the LLM is called);
   - **pipeline triggers** — `/pipeline/score|detect|agent|run-all` (re-run a stage on demand;
     `?reset=false` for incremental/suppression mode), and `/pipeline/reengage` (revisit `wait`
     decisions whose moment has passed → gentle insight; `?days=0` revisits all now);

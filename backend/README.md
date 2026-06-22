@@ -62,6 +62,8 @@ uvicorn apex.api.app:app --reload --port 8000    # interactive docs at http://lo
 | GET | `/customers` | list with per-customer signal/decision summary |
 | GET | `/customers/{id}` | full reasoning trace: profile, accounts, holdings, scores, signals, decisions+actions, recent txns |
 | GET | `/products` | catalogue |
+| GET | `/insights/{id}` | customer money-at-a-glance + APEX's suggestions (each carries a `why_url`) |
+| GET | `/explain/{action_id}` | customer-facing "why am I seeing this?" — explains from a visible fact; declines on a vulnerability-linked outreach |
 | POST | `/pipeline/score` · `/pipeline/detect` · `/pipeline/agent` · `/pipeline/run-all` | re-run pipeline stages on demand (`?send=true` to email; `?limit=N` and `?reset=false` for the agent — `reset=false` = incremental/suppression mode) |
 | POST | `/pipeline/reengage` | revisit WAIT decisions whose acute moment has passed → gentle product-free insight (`?days=0` revisits all now; `?send=true` to email) |
 | GET | `/escalations` | RM queue — escalate decisions awaiting a human (`?include_resolved=true` to include handled ones) |

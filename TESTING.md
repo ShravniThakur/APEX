@@ -193,6 +193,7 @@ Concierge answers questions about a **specific** customer's real data using read
 | *"Can I afford a ₹50,000 phone?"* | Real balance, amount left after, and a verdict — affordable & comfortable for Priya |
 | *"What do I already have with SBI?"* | Her actual holdings (Insta Plus account + eShield) via `get_holdings` |
 | *"What's my balance?"* | The real total across accounts, not a guess |
+| *"What should I get?" / "What do you recommend?"* | Calls `recommend_product` — suggests only **vetted** products (eligible, not already held, ethically cleared via the same routing + guardrail gate the Analyser uses). It never freelances: the LLM phrases, **code picks the product**. Ask the *stressed* Suresh the same thing → it must **not** offer unsecured debt. |
 
 3. Now sign in as a **stressed** customer, **Suresh Kumar** (₹12k balance), and ask:
    - *"Can I afford a ₹50,000 phone?"* → should come back **not comfortable / not affordable** — proving the answer is computed from *his* data, not generic.
@@ -202,6 +203,16 @@ Concierge answers questions about a **specific** customer's real data using read
 > **Safety to demonstrate:** Concierge is scoped to the signed-in customer. It cannot read another customer's data — the `customer_id` is injected server-side, not chosen by the model.
 
 **"What APEX suggests" panel:** on the same tab you'll see the agent's own act-decisions for that customer (the ones from the Analyser run), each with **Open / I've done this / Not interested** — these feed the feedback loop (Section 7).
+
+**"Why am I seeing this?" (the transparency layer).** Each suggestion has a **Why am I seeing this?** link. Click it:
+- For a normal nudge (e.g. Priya's idle balance), it explains using **only a fact she can already see in her own account** ("a significant amount has been sitting idle…") — no jargon, no mention of scores or models.
+- **The restraint to demonstrate:** for an outreach that traces back to a vulnerable moment (a re-engagement after a `life_event` wait, or a customer flagged vulnerable), it **declines to elaborate** — a gentle, non-specific reply — so the customer can never reverse-engineer that something sensitive was detected. The decline is enforced in **code** before the LLM is ever called (APEX_README §6).
+
+Verify headlessly:
+```bash
+# explanation for one suggestion (action_id from /insights/<customer_id>):
+curl -s "localhost:8000/explain/<action_id>" | python -m json.tool   # {"declined": false|true, "explanation": "..."}
+```
 
 ---
 
@@ -308,6 +319,29 @@ Expect the output to report `suppressed=N` — the dismissed/adopted/recently-co
 curl -X POST "localhost:8000/pipeline/expire-outcomes?days=7"
 ```
 
+**D. Category-level back-off (distinct from B).** §B suppresses the *same signal* on a cooldown. This is different: once a customer has **dismissed a whole product category ≥2×**, the deterministic gate downgrades a *future* `act` in that category to **wait** ("don't nag"), and the self-critique is handed the count as evidence. To force and verify it (the "Ravi" case from the WALKTHROUGH), seed two dismissals in one category for a customer, then re-run the agent incrementally:
+```bash
+python - <<'PY'
+from apex.database.db import SessionLocal
+from apex.database.models import Customer, Decision, Action, Outcome
+from datetime import datetime
+# give a customer two dismissed 'investments' decisions, so the category count hits the back-off threshold
+with SessionLocal() as s:
+    c = s.query(Customer).filter_by(name='Priya Nair').first()
+    for _ in range(2):
+        d = Decision(customer_id=c.customer_id, mode='analyser', trigger_ref='idle_balance:seed',
+                     outcome='act', product_id='inv_jannivesh_sip'); s.add(d); s.flush()
+        a = Action(decision_id=d.decision_id, customer_id=c.customer_id, channel='email',
+                   message_text='(seed)'); s.add(a); s.flush()
+        s.add(Outcome(action_id=a.action_id, customer_id=c.customer_id,
+                      response_type='dismissed', responded_at=datetime.utcnow()))
+    s.commit()
+print('seeded 2 investments dismissals for Priya')
+PY
+python -m apex.agent.loop --incremental --limit 20    # her next investments-category act now resolves to WAIT
+```
+Expect her idle-balance decision's reason to read *"customer has dismissed 'investments' 2× before — backing off"* on the ops Customer-detail trace. (Re-run the clean rebuild afterward to discard the seeded rows.)
+
 Verify any of this on the **ops → Customer detail** page (the outcome shows on the decision) or via `curl localhost:8000/customers/<id>`.
 
 ---
@@ -339,6 +373,15 @@ python -m apex.agent.reengage --days 0    # revisit WAITs whose moment has passe
 uvicorn apex.api.app:app --reload --port 8000   # API + /docs
 cd ops && npm run dev                            # dashboard  :5173
 cd customer && npm run dev                       # customer   :5174
+
+# ---- read endpoints (headless, no browser) ----
+curl -s localhost:8000/products | python -m json.tool             # the 28-product catalogue
+curl -s localhost:8000/insights/<customer_id> | python -m json.tool # money-at-a-glance + suggestions (each has why_url)
+curl -s localhost:8000/explain/<action_id> | python -m json.tool    # "why am I seeing this?" (declines on sensitive triggers)
+curl -s -X POST localhost:8000/chat -H 'Content-Type: application/json' \
+  -d '{"mode":"guide","messages":[{"role":"user","content":"I want to open a savings account"}]}'
+curl -s -X POST localhost:8000/chat -H 'Content-Type: application/json' \
+  -d '{"mode":"concierge","customer_id":"<id>","messages":[{"role":"user","content":"what should I get?"}]}'
 
 # ---- on-demand pipeline via API ----
 curl -X POST localhost:8000/pipeline/score
