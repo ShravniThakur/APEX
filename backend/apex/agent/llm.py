@@ -10,6 +10,7 @@ from ..config import GROQ_API_KEY, GROQ_MODEL
 from ._shared import get_client
 from .prompts import (
     SYSTEM_PROMPT, build_compose_prompt, build_critique_prompt, build_hypothesise_prompt,
+    build_reengage_prompt,
 )
 
 
@@ -40,3 +41,7 @@ def critique(payload: dict) -> str:
 
 def compose(payload: dict) -> str:
     return _chat(build_compose_prompt(payload), temperature=0.4)
+
+
+def reengage(payload: dict) -> str:
+    return _chat(build_reengage_prompt(payload), temperature=0.4)

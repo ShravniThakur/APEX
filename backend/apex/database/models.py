@@ -162,6 +162,8 @@ class Decision(Base):
     outcome: Mapped[str | None] = mapped_column(String)  # act|wait|escalate
     product_id: Mapped[str | None] = mapped_column(ForeignKey("products.product_id"))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    # RM escalation queue (escalate decisions only): open until a human RM resolves it.
+    rm_status: Mapped[str | None] = mapped_column(String, default="open")  # open|resolved
 
 
 class Action(Base):

@@ -64,6 +64,8 @@ def stats(db: Session = Depends(get_db)):
         "decisions": len(decisions),
         "decisions_by_outcome": dict(dec_by_outcome),
         "emails_sent": db.query(Action).filter(Action.sent_at.isnot(None)).count(),
+        "escalations_open": db.query(Decision).filter(
+            Decision.outcome == "escalate", Decision.rm_status != "resolved").count(),
     }
 
 
@@ -164,6 +166,48 @@ def insights(customer_id: str, db: Session = Depends(get_db)):
 
 
 # --------------------------------------------------------------------------- #
+# RM escalation queue — where a human relationship manager picks up the cases the
+# gate refused to auto-act on (churn risk, severe stress with only unsecured debt, no
+# eligible product). Closes the `escalate` path: a real inbox, not a dead end.
+# --------------------------------------------------------------------------- #
+@app.get("/escalations")
+def escalations(include_resolved: bool = False, db: Session = Depends(get_db)):
+    q = db.query(Decision).filter(Decision.outcome == "escalate")
+    if not include_resolved:
+        q = q.filter(Decision.rm_status != "resolved")
+    rows = q.order_by(Decision.created_at.desc()).all()
+    custs = {c.customer_id: c for c in db.query(Customer).all()}
+    out = []
+    for d in rows:
+        c = custs.get(d.customer_id)
+        out.append({
+            "decision_id": str(d.decision_id),
+            "customer_id": str(d.customer_id),
+            "customer_name": c.name if c else None,
+            "city_tier": c.city_tier if c else None,
+            "language_pref": c.language_pref if c else None,
+            "monthly_income": float(c.monthly_income) if c and c.monthly_income is not None else None,
+            "signal": (d.trigger_ref or "").split(":", 1)[0],
+            "hypothesis": d.hypothesis,
+            "reason": d.critique_result,
+            "confidence": float(d.confidence) if d.confidence is not None else None,
+            "created_at": d.created_at.isoformat() if d.created_at else None,
+            "rm_status": d.rm_status or "open",
+        })
+    return out
+
+
+@app.post("/escalations/{decision_id}/resolve")
+def resolve_escalation(decision_id: str, db: Session = Depends(get_db)):
+    d = db.get(Decision, decision_id)
+    if d is None or d.outcome != "escalate":
+        raise HTTPException(404, "escalation not found")
+    d.rm_status = "resolved"
+    db.commit()
+    return {"ok": True, "decision_id": decision_id, "rm_status": "resolved"}
+
+
+# --------------------------------------------------------------------------- #
 # Pipeline triggers (synchronous — fine at demo scale; agent calls the LLM)
 # --------------------------------------------------------------------------- #
 @app.post("/pipeline/score")
@@ -185,6 +229,15 @@ def pipeline_agent(limit: int | None = None, send: bool = False, reset: bool = T
     from ..agent.loop import run as run_agent
     run_agent(limit=limit, send=send, reset=reset)  # reset=false → incremental (suppression on)
     return {"ok": True, "step": "agent", "limit": limit, "send": send, "reset": reset}
+
+
+@app.post("/pipeline/reengage")
+def pipeline_reengage(days: int = 3, send: bool = False):
+    """Revisit WAIT decisions whose acute window has passed and send a gentle, product-free
+    insight (APEX_README §6). days=0 revisits all waits now (demo pacing)."""
+    from ..agent.reengage import run as run_reengage
+    res = run_reengage(days=days, send=send)
+    return {"ok": True, "step": "reengage", **res}
 
 
 @app.post("/pipeline/run-all")

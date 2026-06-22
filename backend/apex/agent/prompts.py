@@ -73,6 +73,25 @@ def build_critique_prompt(payload: dict) -> str:
     )
 
 
+def build_reengage_prompt(payload: dict) -> str:
+    """The follow-up after a deliberate WAIT (APEX_README §6). A while ago APEX detected a
+    sensitive moment and chose NOT to reach out. Now the acute window has passed, so it offers a
+    single warm, product-free check-in — never naming the sensitive event, never pushing anything."""
+    c = payload["customer"]
+    lang = LANG_NAMES.get(c.get("language_pref"), "English")
+    return (
+        f"{_customer_line(payload)}\n"
+        f"A while ago APEX noticed a sensitive moment in this person's finances "
+        f"(internal signal: {payload['signal_type']}) and deliberately chose NOT to reach out, to "
+        f"avoid intruding. About {payload.get('days_since')} day(s) have passed and the acute moment "
+        f"appears to have settled.\n\n"
+        f"Write a {lang} message: a brief, warm check-in. Do NOT mention anything specific or private "
+        f"(no medical bills, debts, large expenses, or the reason you noticed). Offer no product and "
+        f"no link — only let them know APEX is here if they'd like to talk anything through about "
+        f"their money. 2-3 sentences, calm, no jargon, no pressure. Output only the message text."
+    )
+
+
 def build_compose_prompt(payload: dict) -> str:
     c = payload["customer"]
     lang = LANG_NAMES.get(c.get("language_pref"), "English")

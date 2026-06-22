@@ -45,7 +45,7 @@ def decision(d, act=None, oc=None) -> dict:
         "id": str(d.decision_id), "mode": d.mode, "trigger_ref": d.trigger_ref,
         "hypothesis": d.hypothesis, "critique_result": d.critique_result,
         "confidence": _f(d.confidence), "outcome": d.outcome, "product_id": d.product_id,
-        "created_at": _dt(d.created_at), "action": action(act, oc),
+        "created_at": _dt(d.created_at), "rm_status": d.rm_status, "action": action(act, oc),
     }
 
 
