@@ -84,8 +84,9 @@ The gap isn't discovery or UX. It's **behavioral**:
 - This is the same dynamic behind real-world backlash to predictive marketing (retailers inferring pregnancy before the family knew). APEX is designed to *never be that.*
 - **In the build, this is enforced in code, not a prompt:** a `life_event` (medical) signal is hard-wired to **WAIT** — the agent literally cannot push a product on it.
 - **And it's *holistic*, not per-signal:** if a customer is in a vulnerable moment, APEX also suppresses insurance pushes that a *different* signal (e.g. a "no insurance yet" gap) would otherwise surface — so it never exploits the moment through a side door. The restraint follows the customer, not the trigger.
+- **The wait is a pause, not a refusal — and it's *built*, not just described:** a scheduled **re-engagement** pass revisits a `wait` once the acute moment has passed and — *only* if the customer isn't still in severe stress — sends a single **product-free, link-free Level-1 insight** that never names the sensitive event. The full "acknowledge → wait → offer insight, let them pull the product forward" sequence runs end to end, in code.
 
-**Speaker notes:** This is the most defensible slide under questioning. It demonstrates judgment and restraint — the genuinely hard, valuable part of agentic AI in banking. Pair it with the demo's "medical event → restraint" scenario.
+**Speaker notes:** This is the most defensible slide under questioning. It demonstrates judgment and restraint — the genuinely hard, valuable part of agentic AI in banking. Pair it with the demo's "medical event → restraint" scenario, then show the re-engagement follow-up appearing days later (the "Re-engage waits" action on the ops dashboard) — proof the wait actually *resolves*, it doesn't just stall.
 
 ---
 
@@ -245,7 +246,7 @@ The gap isn't discovery or UX. It's **behavioral**:
 - **Investigate** — gathers the customer's profile, transactions, scores, eligibility, their **dismissal-count "memory"** (per-category, from the outcome log), and their full set of **active signals**.
 - **Hypothesise** — forms a candidate action by matching propensity against eligibility. *The one mechanical step a plain rule could do.*
 - **Self-critique** — and this is *causal*, not decorative: it's handed real evidence (the dismissal count for this category + the stress score) and answers `PROCEED` or `HOLD`. A **HOLD loops the graph back to re-reason once**, and at Decide it can **veto an `act` down to `wait`** — but it can *only* push toward caution, never upgrade to act.
-- **Decide** — resolves to **act**, **wait**, or **escalate** — deterministic, tied to a confidence threshold and the dismissal/vulnerability rules.
+- **Decide** — resolves to **act**, **wait**, or **escalate** — deterministic, tied to a confidence threshold and the dismissal/vulnerability rules. **None of the three is a dead end:** `act` delivers, `wait` is revisited later by the re-engagement pass (Slide 5), and `escalate` lands in a **human-RM queue** (a real inbox on the ops dashboard) — for `churn_risk`, severe-stress-with-only-unsecured-debt, and "nothing eligible."
 
 **"LLM proposes, code disposes."** Decide is **deterministic code**, not the LLM — that's what makes the ethical guarantees trustworthy. The LLM reasons and writes the message, and can raise a one-way *caution* brake; it never makes the act-ward call. **Every step is logged**, so the reasoning trace *is* the audit log.
 
@@ -405,7 +406,8 @@ Layer 2: score everyone   →  Layer 3: detect signals  →  Layer 4: decide (co
 **A working end-to-end prototype of all three modes — not slideware.**
 
 - The full pipeline runs: synthetic data → ML scores → signal detection → the agentic loop → a real email (or principled restraint) → outcome capture → a feedback/suppression loop.
-- **Two real web apps:** a customer-facing site (Guide + Concierge + voice + explore) and an internal **bank-ops dashboard** (the reasoning traces, decisions, outcomes across customers).
+- **All three decision outcomes resolve — none dead-ends:** `act` delivers; `wait` is revisited by a **scheduled re-engagement** pass (sends a gentle, product-free insight once the moment has passed, holds if the customer is still in acute stress); `escalate` lands in a **human-RM escalation queue** on the dashboard (open → mark handled).
+- **Two real web apps:** a customer-facing site (Guide + Concierge + voice + explore) and an internal **bank-ops dashboard** (the reasoning traces, decisions, outcomes across customers, plus the escalation queue and a "Re-engage waits" trigger).
 - **A live demo mechanic** — the "Simulate 3 months of activity" button that shows the Guide→Analyser transition happen on the spot.
 
 **The honest claim:** *Everything hard is real — the reasoning, the judgment, the restraint, the vernacular generation, the voice pipeline. Only the seams where real bank integration isn't possible at hackathon scale are simulated.*
@@ -530,6 +532,7 @@ Then: open the **ops dashboard** to show the reasoning trace; click the **email 
 - **Tier 2 acquisition** depends on SBI's onboarding system resuming an application by ID/step — stated as an assumption, to be confirmed.
 - **`yono_path` → real deep-link URL templates** (real navigation structure already confirmed against `sbi.bank.in`).
 - **Prioritisation policy** for when a sweep surfaces more signals than capacity allows.
+- **Per-customer frequency cap (multi-signal synthesis)** — today a customer with several signals (or several waits) can receive more than one outreach in a cycle. The next step is to collapse them to the single most relevant contact per customer, per window — a natural extension of the re-engagement + cooldown machinery already built.
 
 **Speaker notes:** Ending on honest open items is a strength, not a weakness — it signals you know the difference between what's built, what's assumed, and what's future. Judges trust teams that draw that line clearly.
 
@@ -553,6 +556,8 @@ Then: open the **ops dashboard** to show the reasoning trace; click the **email 
 - **"Could this be all rules?"** → The product-match step is a rule, and we keep it one. Timing, tone, and "is a technically-correct recommendation actually appropriate right now" can't be — that's the self-critique step (Slide 15).
 - **"How do you handle 50 crore customers?"** → The cost funnel (Slide 19): the expensive LLM only runs on the tiny acted subset; scoring/detection/decision are cheap and batchable.
 - **"What about privacy / a creepy-AI backlash?"** → The ethical guardrail (Slide 5): never push on a vulnerability signal; wait, offer insight, let the customer pull the product forward. Enforced in code.
+- **"So a `wait` just stalls forever?"** → No — a scheduled re-engagement pass revisits it once the acute moment has passed and sends a *single, product-free* check-in (never naming what it detected); if the customer is still in severe stress it keeps waiting. The wait resolves, on the customer's timeline, not the bank's. (Slide 5.)
+- **"What happens to an `escalate`?"** → It goes to a human-RM **escalation queue** on the ops dashboard — churn risk, severe stress with only unsecured debt, or nothing eligible. A relationship manager sees the gate's reason and marks it handled. The agent knows the limits of its own authority. (Slide 15.)
 - **"What's actually fake in the demo?"** → Only the seams where SBI's own infrastructure would hand us something: data arriving, time passing, login. Never the reasoning. (Slide 30.)
 - **"Why not three agents for three pillars?"** → One reasoning core is more elegant and easier to keep ethically consistent; the wrapper already provides the decide/execute separation people use multi-agent for. (Slide 25.)
 - **"Why email and not WhatsApp?"** → Cost only — WhatsApp/SMS need paid telecom with no free tier. The reasoning and content are identical; only the delivery channel differs.

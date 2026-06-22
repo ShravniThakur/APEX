@@ -66,6 +66,9 @@ python -m apex.signals.validate
 
 # 7. Run the Analyser agentic loop → DECISIONS + ACTIONS (no email)
 python -m apex.agent.loop
+
+# 7b. (optional) Re-engage deliberate WAITs whose acute moment has passed → gentle, product-free insight
+python -m apex.agent.reengage --days 0          # --days 0 revisits all waits now (demo pacing)
 ```
 
 ### Agent-loop flags (`python -m apex.agent.loop ...`)
@@ -85,7 +88,9 @@ Flags combine freely, e.g. `python -m apex.agent.loop --incremental --limit 6 --
 
 **What "reset" means at each level:**
 - **Re-seed data only** (most common): re-run steps **2 → 7**. `generate --reset` wipes synthetic customers/accounts/txns/scores/signals/decisions but **keeps PRODUCTS**.
-- **Schema changed / totally clean slate:** drop and recreate the DB, then run steps **1 → 7**:
+- **Schema changed (new column):** just re-run step **1** — `init_db` applies idempotent column
+  migrations (`ADD COLUMN IF NOT EXISTS`, e.g. `decisions.rm_status`) on top of the existing DB, **no
+  data loss, no drop needed.** Only drop for a *totally* clean slate:
   ```bash
   psql -c "DROP DATABASE apex;" && psql -c "CREATE DATABASE apex;"
   ```
@@ -96,7 +101,8 @@ Flags combine freely, e.g. `python -m apex.agent.loop --incremental --limit 6 --
 - **Step 3 (train)** prints ROC-AUC per model and writes `apex/ml/artifacts/{stress,churn,propensity}.joblib`.
 - **Step 6 (validate)** is the report card. Expect: **recall** on every persona's expected signal, **silence** on the ~30 noise customers, and EXTRAS only as warnings.
   - ⚠️ **Expected today (date is 2026-06-22):** `fiscal_year_end_window` (persona *Anita Rao*) is **calendar-gated to Jan–Mar**, so out of that window it is reported as *conditional* (it passes if its precondition holds) — this is correct, not a failure.
-- **Step 7 (agent)** prints something like `act=… wait=… escalate=…`. You should see at least one **wait** (the medical/`life_event` persona, *Anjali Desai*) and one **escalate** is possible for severe stress.
+- **Step 7 (agent)** prints something like `act=… wait=… escalate=…`. You should see at least one **wait** (the medical/`life_event` persona, *Anjali Desai*) and at least one **escalate** (severe stress with only unsecured debt, *Suresh Kumar*, and/or `churn_risk`).
+- **Step 7b (reengage)** prints `re-engaged=… still-waiting(acute)=…`. Expect some waits to be **re-engaged** (the moment has passed → a gentle product-free insight is written) and any in *severe ongoing stress* to be **kept waiting**. Re-running it is idempotent — a wait is followed up at most once (`reengaged=0` on a second pass).
 
 ---
 
@@ -142,6 +148,35 @@ The Analyser already ran in step 1.7; the dashboard reads its output.
 | **Lakshmi Banerjee** (Bengali) | `cash_flow_stress` (severe) | **act** → Loan **against FD** | Severely stressed too, but steered to *secured* lending (her own FD) — never unsecured debt. The Suresh-vs-Lakshmi contrast is the nuance to show |
 
 **The key thing to demonstrate:** open **Anjali Desai** and show that APEX *detected* the vulnerability and *chose to wait* — restraint enforced by code, visible in the trace. That's the differentiator no one else shows.
+
+### 3a. The Escalation queue (the RM handoff) — Overview → "Escalations"
+
+`escalate` decisions aren't a dead end — they land in a **human relationship-manager inbox.**
+
+1. Open the **Escalations** tab. Expect the cases the gate refused to auto-act on: **Suresh Kumar** (`cash_flow_stress`, severe + only unsecured debt → escalate) and any **`churn_risk`** customer (the attrition model flagged them → escalate for retention, not a product push).
+2. Each card shows the customer, the signal, and **the gate's reason** (why it escalated). Click **Mark handled** → the case disappears from the open queue and the **Escalations open** stat on Overview drops by one.
+3. The **Overview** page also shows an **Escalations open** count, and a **Re-engage waits** button (next to *Run pipeline*) — see §3b.
+
+Verify via API if you prefer:
+```bash
+curl -s localhost:8000/escalations | python -m json.tool        # the open queue
+curl -X POST localhost:8000/escalations/<decision_id>/resolve   # mark one handled
+```
+
+### 3b. Re-engaging a deliberate wait (the ethical timing, made real) — Overview → "Re-engage waits"
+
+A `wait` is a *pause*, not a refusal. After the acute moment passes, APEX follows up **once** with a gentle, product-free insight (never naming the sensitive event).
+
+1. With at least one `wait` on record (e.g. **Anjali Desai**'s `life_event`), click **Re-engage waits** on Overview. (It calls `/pipeline/reengage?days=0` — revisit all waits now, demo pacing.)
+2. Open that customer's **Customer detail**: alongside the original `wait`, you'll now see a new **act** decision badged **re-engagement** — a Level-1, product-free, link-free check-in message.
+3. **Restraint still holds:** a customer in *severe ongoing stress* is **not** re-engaged (the moment hasn't passed) — they stay waiting. The pass output reports `re-engaged=N still-waiting(acute)=M`.
+
+Verify via API:
+```bash
+curl -X POST "localhost:8000/pipeline/reengage?days=0"          # {"reengaged": N, "still_waiting": M, ...}
+```
+
+> **One honest caveat to know:** if the *same* customer has two separate waits, they currently get two check-ins (no per-customer cap yet). Mention it if asked — the fix is the multi-signal frequency cap on the roadmap.
 
 ---
 
@@ -298,6 +333,7 @@ python -m apex.ml.score
 python -m apex.signals.detect
 python -m apex.signals.validate
 python -m apex.agent.loop                 # flags: --limit N / --send / --incremental (explained in §1)
+python -m apex.agent.reengage --days 0    # revisit WAITs whose moment has passed → gentle insight (--send to email)
 
 # ---- serve ----
 uvicorn apex.api.app:app --reload --port 8000   # API + /docs
@@ -309,6 +345,8 @@ curl -X POST localhost:8000/pipeline/score
 curl -X POST localhost:8000/pipeline/detect
 curl -X POST "localhost:8000/pipeline/agent?reset=false&limit=6&send=false"
 curl -X POST "localhost:8000/pipeline/run-all?send=false"
+curl -X POST "localhost:8000/pipeline/reengage?days=0&send=false"   # re-engage deliberate waits
+curl -s localhost:8000/escalations                                 # the RM escalation queue
 curl -X POST "localhost:8000/demo/simulate?scenario=life_event"
 ```
 

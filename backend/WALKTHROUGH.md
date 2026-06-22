@@ -90,7 +90,7 @@ These form a chain: a **score** → fires a **signal** → triggers a **decision
 |---|---|---|
 | `scores` | ML scores per customer | the ML layer |
 | `signals` | a detected trigger | signal detection (`status`: new→processed→expired) |
-| `decisions` | the agent's reasoning: `mode`, `hypothesis`, `critique_result`, `confidence`, `outcome` (act/wait/escalate), `product_id` | the agent |
+| `decisions` | the agent's reasoning: `mode`, `hypothesis`, `critique_result`, `confidence`, `outcome` (act/wait/escalate), `product_id`, `rm_status` (open/resolved — the human-RM queue, used by `escalate` rows) | the agent |
 | `actions` | what was sent: `authority_level` (1-3), `channel`, `message_text`, `deep_link`, `sent_at` | the agent |
 | `outcomes` | customer response: `response_type` (clicked/dismissed/ignored/completed) | the feedback layer |
 
@@ -104,9 +104,12 @@ philosophy: APEX is a **read-only wrapper** over SBI's data that keeps its own r
 
 Run once with `python -m apex.database.init_db`.
 
-- **`init_db.py`** — creates all 12 tables (`Base.metadata.create_all`, safe to re-run), then seeds
-  products. The `from . import models` line looks unused but is essential: importing it is what
-  registers the tables onto `Base`.
+- **`init_db.py`** — creates all 12 tables (`Base.metadata.create_all`, safe to re-run), then applies
+  **idempotent column migrations** (`ALTER TABLE … ADD COLUMN IF NOT EXISTS`, e.g. `decisions.rm_status`),
+  then seeds products. The migration step matters because `create_all` only ever creates *missing
+  tables* — it never alters an existing one — so re-running `init_db` on a populated DB brings the
+  schema up to date **without a drop/regenerate** (no data loss). The `from . import models` line looks
+  unused but is essential: importing it is what registers the tables onto `Base`.
 - **`seed_products.py`** — loads `product_catalogue.json` into `products` with an **idempotent
   upsert** (insert new, update existing) — so re-running never duplicates or errors. Products are
   fixed reference data (seeded once); everything else is synthetic and regenerated.
@@ -424,6 +427,40 @@ A list of rules checked top-to-bottom; the first that matches wins:
 gate says anything other than "act," no message is ever written — restraint is structural, not a
 prompt request.
 
+### Re-engaging a `wait` (`reengage.py`) — a pause, not a dead end
+
+A `wait` isn't the end of the story; it's a deliberate pause (APEX_README §6: *detect → acknowledge
+and wait → offer insight without a product → let the customer pull it forward*). `reengage.py` is the
+scheduled second look that makes that real instead of conceptual.
+
+It finds `wait` decisions older than `--days` (default **3**; the demo uses `--days 0` so you don't
+have to wait, the same "run it now for pacing" choice the demo mechanic makes), skips any wait that
+was already followed up (each follow-up is tagged `trigger_ref="reengage:<original_decision_id>"`, so
+a wait is re-engaged **at most once**), and for each remaining wait makes **one** call:
+
+- **Still acutely vulnerable?** If the customer is in *severe ongoing financial stress* (stress ≥ the
+  same `SEVERE_STRESS` the gate uses), it **keeps waiting** — APEX never follows up *during* the hard
+  window. (A medical `life_event`, by contrast, eases with time, which is exactly what "days since the
+  wait" represents — so those do become eligible.)
+- **Moment has passed?** It writes a follow-up decision (`outcome="act"`, **authority Level 1**,
+  `product_id=None`) and a product-free, link-free **insight** message composed by `llm.reengage` — a
+  warm check-in that *names nothing sensitive* ("we're here if you'd like to talk anything through"),
+  never a push. If the LLM is unavailable it degrades to a calm deterministic fallback, same as the
+  loop. `--send` delivers it through the same Resend sink.
+
+So the worked example finally closes: **Anjali**'s medical-event wait, days later and only if she's
+not still in acute stress, becomes a single gentle, product-free check-in — not a sales nudge.
+
+### The escalation queue — the `escalate` handoff (`rm_status`)
+
+The other non-act outcome, `escalate`, used to dead-end as a logged decision. It's now a real
+**human-RM inbox.** `escalate` covers the cases the gate refuses to auto-act on — `churn_risk`
+(don't auto-push at someone heading for the door), severe stress with only *unsecured* debt available
+(Suresh), and "nothing eligible." Each such decision carries an `rm_status` (**open → resolved**); the
+API exposes the queue (`GET /escalations`) and a resolve action (`POST /escalations/{id}/resolve`), and
+the ops dashboard renders it as an **Escalations** page where a relationship manager reads the gate's
+reason and clicks **Mark handled**. The escalate path now leads somewhere — to a person.
+
 ---
 
 ## 8b. Conversational modes
@@ -552,6 +589,10 @@ Walk it with **Priya** (idle balance) and **Anjali** (medical event):
    - Anjali → **wait** → the gate forces restraint; `compose` is skipped; **no message written**.
 4. **Record & deliver**: a `decision` is saved either way (the audit trail). Priya gets an `action`
    + a real email; Anjali gets a decision on record showing APEX *noticed and held back*.
+5. **Re-engage / escalate (the non-act tails close too)**: days later, `reengage.py` revisits Anjali's
+   `wait` — and *only* if she's no longer in an acute moment, sends one gentle, product-free check-in
+   (§8). And anyone the gate `escalate`d (e.g. Suresh) sits in the **RM queue** (`rm_status=open`)
+   until a human resolves it. Neither outcome is a dead end.
 
 One sentence: *score everyone cheaply → let cheap rules pick who's worth waking the agent for →
 reason with an LLM but let code make the act/wait/escalate call → reach the right person, at the
@@ -641,7 +682,10 @@ makes it interactive — it's what the two frontends (`ops/`, `customer/`) talk 
   - **read endpoints** the bank dashboard needs — `/stats`, `/customers`, `/customers/{id}` (the full
     reasoning trace), `/products`, `/insights/{id}` (the customer money-at-a-glance + suggestions);
   - **pipeline triggers** — `/pipeline/score|detect|agent|run-all` (re-run a stage on demand;
-    `?reset=false` for incremental/suppression mode);
+    `?reset=false` for incremental/suppression mode), and `/pipeline/reengage` (revisit `wait`
+    decisions whose moment has passed → gentle insight; `?days=0` revisits all now);
+  - **RM escalation queue** — `/escalations` (the inbox of `escalate` decisions awaiting a human) and
+    `/escalations/{decision_id}/resolve` (mark one handled);
   - **conversational** — `/chat` (routes to Guide or Concierge) and `/voice/transcribe` (Whisper STT);
   - **demo + feedback** — `/demo/simulate`, and `/track/{action_id}[/adopt|/dismiss]` + `/pipeline/expire-outcomes`.
   - CORS is open so the Vite dev servers can call it directly.
@@ -744,3 +788,8 @@ A single consolidated comparison, pulling together every demo/production distinc
   standing rule (set up once, runs itself). APEX never holds open-ended authority.
 - **Code gate** — the deterministic `decide` step where act/wait/escalate is settled in plain code,
   so bright-line ethics are guaranteed, not requested in a prompt.
+- **Re-engagement** — the scheduled second look at a `wait` (`reengage.py`): once the acute moment has
+  passed (and only if the customer isn't still in severe stress), APEX sends one gentle, product-free
+  Level-1 insight. The "acknowledge and wait, then offer insight" ethic, made operational.
+- **RM queue** — the inbox of `escalate` decisions awaiting a human relationship manager, tracked by
+  the `decisions.rm_status` field (open → resolved) and surfaced on the ops **Escalations** page.

@@ -28,7 +28,7 @@ The target database must already exist (e.g. `CREATE DATABASE apex;`).
 
 ```bash
 # 1. Create all 12 tables + seed the 28-product catalogue into PRODUCTS
-python -m apex.database.init_db
+python -m apex.database.init_db   # idempotent: re-running also applies additive column migrations (no data loss)
 
 # 2. Generate synthetic data (16 signal-personas + noise population)
 python -m apex.generator.generate --reset      # --reset wipes prior synthetic rows (keeps products)
@@ -46,6 +46,10 @@ python -m apex.agent.loop                        # writes DECISIONS + ACTIONS (n
 python -m apex.agent.loop --limit 6              # process only the first 6 (saves LLM calls)
 python -m apex.agent.loop --limit 3 --send       # also deliver acted messages via Resend
 
+# 5b. Re-engage deliberate WAITs whose acute moment has passed (gentle, product-free insight)
+python -m apex.agent.reengage                    # revisit waits >= 3 days old
+python -m apex.agent.reengage --days 0 --send    # demo: revisit all waits now + deliver email
+
 # 6. Serve the HTTP API (read surface for the dashboard + pipeline triggers)
 uvicorn apex.api.app:app --reload --port 8000    # interactive docs at http://localhost:8000/docs
 ```
@@ -59,6 +63,9 @@ uvicorn apex.api.app:app --reload --port 8000    # interactive docs at http://lo
 | GET | `/customers/{id}` | full reasoning trace: profile, accounts, holdings, scores, signals, decisions+actions, recent txns |
 | GET | `/products` | catalogue |
 | POST | `/pipeline/score` · `/pipeline/detect` · `/pipeline/agent` · `/pipeline/run-all` | re-run pipeline stages on demand (`?send=true` to email; `?limit=N` and `?reset=false` for the agent — `reset=false` = incremental/suppression mode) |
+| POST | `/pipeline/reengage` | revisit WAIT decisions whose acute moment has passed → gentle product-free insight (`?days=0` revisits all now; `?send=true` to email) |
+| GET | `/escalations` | RM queue — escalate decisions awaiting a human (`?include_resolved=true` to include handled ones) |
+| POST | `/escalations/{decision_id}/resolve` | mark an escalation handled by the relationship manager |
 | POST | `/chat` | conversational reply — `{mode: guide\|concierge, customer_id?, messages[]}` (Groq, context-injected) |
 | POST | `/voice/transcribe` | speech-to-text (multipart audio → text) via Groq Whisper |
 | GET | `/demo/scenarios` | list "simulate 3 months" scenarios |
@@ -103,6 +110,7 @@ apex/
     prompts.py llm.py    Groq calls for the hypothesise / critique / compose nodes
     mailer.py            real outbound email via Resend (routes to the demo sink)
     loop.py              Analyser loop -> DECISIONS + ACTIONS  (python -m apex.agent.loop)
+    reengage.py          revisit WAITs after the acute moment passes -> gentle insight  (python -m apex.agent.reengage)
     guide.py             Guide mode — onboarding chat (context injection)
     concierge.py         Concierge mode — LangGraph tool-calling agent (read-only per-customer tools)
     voice.py             Groq Whisper speech-to-text (used by both modes)
