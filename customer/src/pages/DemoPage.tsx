@@ -31,13 +31,13 @@ export default function DemoPage({ goToConcierge }: { goToConcierge: () => void 
     goToConcierge()
   }
 
-  if (err) return <Card className="p-5 text-sm text-rose-600">Couldn't reach APEX: {err}</Card>
+  if (err) return <Card className="p-5 text-sm text-rose-300">Couldn't reach APEX: {err}</Card>
   if (!scenarios) return <Spinner />
 
   return (
     <div>
-      <h1 className="mb-1 text-xl font-semibold text-slate-900">See APEX in action</h1>
-      <p className="mb-4 text-sm text-slate-500">
+      <h1 className="mb-1 text-xl font-semibold text-white">See APEX in action</h1>
+      <p className="mb-4 text-sm text-slate-400">
         Imagine you just opened an account. Fast-forward three months of real activity — and watch
         whether APEX notices a moment worth reaching out about.
       </p>
@@ -46,11 +46,11 @@ export default function DemoPage({ goToConcierge }: { goToConcierge: () => void 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {scenarios.map((s) => (
             <Card key={s.key} className="flex flex-col justify-between p-5">
-              <div className="mb-4 text-sm font-medium text-slate-800">{s.label}</div>
+              <div className="mb-4 text-sm font-medium text-slate-100">{s.label}</div>
               <button
                 onClick={() => run(s.key)}
                 disabled={running !== null}
-                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
               >
                 {running === s.key ? 'Simulating…' : 'Simulate 3 months'}
               </button>
@@ -60,7 +60,7 @@ export default function DemoPage({ goToConcierge }: { goToConcierge: () => void 
       )}
 
       {running && (
-        <p className="mt-4 text-sm text-amber-600">
+        <p className="mt-4 text-sm text-amber-300">
           Three months of activity arrive → APEX reviews it and decides whether to reach out…
         </p>
       )}
@@ -68,8 +68,8 @@ export default function DemoPage({ goToConcierge }: { goToConcierge: () => void 
       {result && (
         <div>
           <Card className="mb-4 p-5">
-            <div className="mb-3 text-sm text-slate-500">
-              After three months for <span className="font-medium text-slate-800">{result.name}</span>, APEX:
+            <div className="mb-3 text-sm text-slate-400">
+              After three months for <span className="font-medium text-slate-100">{result.name}</span>, APEX:
             </div>
             <div className="space-y-3">
               {result.outreach.map((o, i) => <Outcome key={i} o={o} />)}
@@ -78,13 +78,13 @@ export default function DemoPage({ goToConcierge }: { goToConcierge: () => void 
           <div className="flex gap-2">
             <button
               onClick={continueAsCustomer}
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500"
             >
               Continue to My finances as {result.name.split(' ')[0]}
             </button>
             <button
               onClick={() => setResult(null)}
-              className="rounded-lg bg-slate-100 px-4 py-2 text-sm text-slate-600 hover:bg-slate-200"
+              className="rounded-lg bg-white/10 px-4 py-2 text-sm text-slate-200 hover:bg-white/20"
             >
               Try another
             </button>
@@ -100,12 +100,12 @@ function Outcome({ o }: { o: { outcome: string; message_text: string | null; dee
     return (
       <div>
         <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">reached out</div>
-        <div className="rounded-2xl bg-slate-100 px-4 py-2 text-sm text-slate-800 whitespace-pre-line">
+        <div className="whitespace-pre-line rounded-2xl bg-white/5 px-4 py-2 text-sm text-slate-100">
           {o.message_text}
         </div>
         {o.deep_link && (
           <a href={o.deep_link} target="_blank" rel="noreferrer"
-            className="mt-1 inline-block text-xs text-indigo-600 hover:underline">
+            className="mt-1 inline-block break-all text-xs text-blue-400 hover:underline">
             {o.deep_link}
           </a>
         )}
@@ -114,13 +114,13 @@ function Outcome({ o }: { o: { outcome: string; message_text: string | null; dee
   }
   if (o.outcome === 'wait') {
     return (
-      <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+      <div className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-200">
         Noticed something sensitive and <b>chose to wait</b> — no product was pushed at a vulnerable moment.
       </div>
     )
   }
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-600">
+    <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">
       Flagged for a person to review.
     </div>
   )

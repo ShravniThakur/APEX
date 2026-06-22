@@ -11,12 +11,12 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('home')
 
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-4">
+    <div className="app-bg">
+      <header className="sticky top-0 z-20 border-b border-white/10 bg-[#070d20]/80 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
           <button onClick={() => setTab('home')} className="text-left">
-            <div className="text-lg font-semibold text-indigo-700">APEX</div>
-            <div className="text-xs text-slate-500">Your money, in plain language</div>
+            <div className="text-lg font-semibold text-white">APEX</div>
+            <div className="text-xs text-blue-200/70">Your money, in plain language</div>
           </button>
           <nav className="flex gap-1 text-sm">
             <TabButton id="guide" tab={tab} setTab={setTab} label="Open an account" />
@@ -26,12 +26,18 @@ export default function App() {
           </nav>
         </div>
       </header>
-      <main className="mx-auto max-w-3xl px-5 py-6">
-        {tab === 'home' && <LandingPage go={setTab} />}
-        {tab === 'guide' && <GuidePage />}
-        {tab === 'explore' && <ExplorePage />}
-        {tab === 'concierge' && <ConciergePage />}
-        {tab === 'demo' && <DemoPage goToConcierge={() => setTab('concierge')} />}
+      <main>
+        {tab === 'home' ? (
+          <LandingPage go={setTab} />
+        ) : (
+          // Concierge is a two-column workspace (snapshot + chat), so it gets a wider container.
+          <div className={`mx-auto px-5 py-4 ${tab === 'concierge' ? 'max-w-7xl' : 'max-w-3xl'}`}>
+            {tab === 'guide' && <GuidePage />}
+            {tab === 'explore' && <ExplorePage />}
+            {tab === 'concierge' && <ConciergePage />}
+            {tab === 'demo' && <DemoPage goToConcierge={() => setTab('concierge')} />}
+          </div>
+        )}
       </main>
     </div>
   )
@@ -44,7 +50,7 @@ function TabButton(
   return (
     <button
       onClick={() => setTab(id)}
-      className={`rounded-lg px-3 py-2 ${active ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+      className={`rounded-lg px-3 py-2 ${active ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-white/10'}`}
     >
       {label}
     </button>

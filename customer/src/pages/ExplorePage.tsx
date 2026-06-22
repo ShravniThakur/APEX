@@ -19,13 +19,13 @@ export default function ExplorePage() {
     api.products().then(setProducts).catch((e) => setErr(String(e)))
   }, [])
 
-  if (err) return <Card className="p-5 text-sm text-rose-600">Couldn't reach APEX: {err}</Card>
+  if (err) return <Card className="p-5 text-sm text-rose-300">Couldn't reach APEX: {err}</Card>
   if (!products) return <Spinner />
 
   return (
     <div>
-      <h1 className="mb-1 text-xl font-semibold text-slate-900">What SBI can help with</h1>
-      <p className="mb-5 text-sm text-slate-500">
+      <h1 className="mb-1 text-xl font-semibold text-white">What SBI can help with</h1>
+      <p className="mb-5 text-sm text-slate-400">
         The full picture, grouped by what it's for — so you're not left guessing what to ask.
       </p>
 
@@ -35,23 +35,23 @@ export default function ExplorePage() {
           if (items.length === 0) return null
           return (
             <section key={g.label}>
-              <h2 className="text-base font-semibold text-slate-800">{g.label}</h2>
-              <p className="mb-3 text-xs text-slate-500">{g.blurb}</p>
+              <h2 className="text-base font-semibold text-slate-100">{g.label}</h2>
+              <p className="mb-3 text-xs text-slate-400">{g.blurb}</p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {items.map((p) => (
                   <Card key={p.product_id} className="p-4">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="font-medium text-slate-800">{p.name}</div>
+                      <div className="font-medium text-slate-100">{p.name}</div>
                       {p.tax_saving && (
-                        <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] text-emerald-700">
+                        <span className="shrink-0 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] text-emerald-300">
                           tax-saving
                         </span>
                       )}
                     </div>
-                    <p className="mt-1 text-sm text-slate-600">{p.primary_use || p.description}</p>
+                    <p className="mt-1 text-sm text-slate-300">{p.primary_use || p.description}</p>
                     {p.landing_url && (
                       <a href={p.landing_url} target="_blank" rel="noreferrer"
-                        className="mt-2 inline-block text-xs text-indigo-600 hover:underline">
+                        className="mt-2 inline-block text-xs text-blue-400 hover:underline">
                         Learn more on SBI
                       </a>
                     )}

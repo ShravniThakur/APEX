@@ -86,9 +86,9 @@ export default function ChatPanel({ mode, customerId, lang, intro }: Props) {
   }
 
   return (
-    <Card className="flex h-[68vh] flex-col">
-      <div className="flex items-center justify-end border-b border-slate-100 px-4 py-2">
-        <label className="flex items-center gap-2 text-xs text-slate-500">
+    <Card className="flex h-[68vh] flex-col lg:h-full">
+      <div className="flex items-center justify-end border-b border-white/10 px-4 py-2">
+        <label className="flex items-center gap-2 text-xs text-slate-400">
           <input type="checkbox" checked={tts} onChange={(e) => setTts(e.target.checked)} />
           Speak replies
         </label>
@@ -98,12 +98,12 @@ export default function ChatPanel({ mode, customerId, lang, intro }: Props) {
         <Bubble role="assistant" content={intro} />
         {messages.map((m, i) => <Bubble key={i} role={m.role} content={m.content} />)}
         {busy && <div className="text-sm text-slate-400">APEX is thinking…</div>}
-        {err && <div className="text-sm text-rose-600">{err}</div>}
+        {err && <div className="text-sm text-rose-300">{err}</div>}
         <div ref={endRef} />
       </div>
 
       <form
-        className="flex items-center gap-2 border-t border-slate-100 p-3"
+        className="flex items-center gap-2 border-t border-white/10 p-3"
         onSubmit={(e) => { e.preventDefault(); send(input) }}
       >
         <button
@@ -112,7 +112,7 @@ export default function ChatPanel({ mode, customerId, lang, intro }: Props) {
           disabled={busy}
           title="Speak instead of typing"
           className={`rounded-lg px-3 py-2 text-sm ${
-            recorder.recording ? 'bg-rose-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            recorder.recording ? 'bg-rose-600 text-white' : 'bg-white/10 text-slate-200 hover:bg-white/20'
           } disabled:opacity-50`}
         >
           {recorder.recording ? '● stop' : '🎤'}
@@ -122,12 +122,12 @@ export default function ChatPanel({ mode, customerId, lang, intro }: Props) {
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type a message…"
           disabled={busy}
-          className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+          className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 outline-none focus:border-blue-400"
         />
         <button
           type="submit"
           disabled={busy || !input.trim()}
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
         >
           Send
         </button>
@@ -136,16 +136,42 @@ export default function ChatPanel({ mode, customerId, lang, intro }: Props) {
   )
 }
 
+// Turn any http(s) URL in a message into a clickable link. Concierge is reactive — the customer
+// asked — so surfacing a tappable link is helpful here (unlike the proactive Analyser emails, which
+// deliberately carry no links). Trailing punctuation (e.g. a sentence-ending ".") is kept out of the href.
+const URL_RE = /(https?:\/\/[^\s<]+)/g
+
+function renderWithLinks(text: string, isUser: boolean) {
+  return text.split(URL_RE).map((part, i) => {
+    if (!/^https?:\/\//.test(part)) return part
+    const trail = (part.match(/[.,;:!?)\]}]+$/) || [''])[0]
+    const url = trail ? part.slice(0, part.length - trail.length) : part
+    return (
+      <span key={i}>
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className={`break-all underline ${isUser ? 'text-white' : 'text-blue-300 hover:text-blue-200'}`}
+        >
+          {url}
+        </a>
+        {trail}
+      </span>
+    )
+  })
+}
+
 function Bubble({ role, content }: { role: 'user' | 'assistant'; content: string }) {
   const isUser = role === 'user'
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
         className={`max-w-[80%] whitespace-pre-line rounded-2xl px-4 py-2 text-sm ${
-          isUser ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-800'
+          isUser ? 'bg-blue-600 text-white' : 'bg-white/5 text-slate-100'
         }`}
       >
-        {content}
+        {renderWithLinks(content, isUser)}
       </div>
     </div>
   )
