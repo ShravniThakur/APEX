@@ -1,0 +1,657 @@
+{
+  "_meta": {
+    "description": "APEX product catalogue — the grounding source of truth for eligibility checks (rule-based), Concierge-mode factual answers, and deep-link handoffs. NOT a financial ledger; purely product metadata.",
+    "depth_tiers": {
+      "full": "Proactively recommended by the Analyser. Has a signal targeting it, machine-checkable eligibility_rules, and verified facts.",
+      "reference": "Concierge/Guide only — answered accurately but never proactively recommended (no honest signal, or eligibility not machine-checkable). e.g. BHIM-UPI, Regular Savings, SBI General."
+    },
+    "verified_field_note": "verified=true means the numeric values were confirmed via research. verified=false means structurally reasonable placeholders — DO NOT present these numbers as fact without confirming against SBI's live product pages.",
+    "landing_url_note": "landing_url is the real product/landing page for the handoff. Pre-fill is not achievable on SBI public pages (see specs/catalogue-finalisation.md), so APEX deep-links to the page and the customer completes it in OnlineSBI/YONO. placeholder:// = real URL not yet confirmed."
+  },
+  "products": [
+    {
+      "product_id": "acc_insta_plus",
+      "name": "Insta Plus Savings Account",
+      "category": "accounts",
+      "depth": "full",
+      "verified": true,
+      "verification_source": "sbi.bank.in/web/yono/insta-plus-savings-bank-account + sbi.bank.in/web/interest-rates/savings-bank-deposits (primary source, fetched 2026-06-20)",
+      "description": "Fully digital savings account opened end-to-end through YONO with mandatory PAN + Aadhaar and a video KYC call. No branch visit required. New-to-bank resident individuals only.",
+      "eligibility_rules": {
+        "min_age": 18,
+        "requires_aadhaar": true,
+        "requires_pan": true,
+        "requires_video_kyc": true,
+        "requires_resident": true,
+        "requires_new_to_bank": true,
+        "min_balance": 0
+      },
+      "key_facts": {
+        "min_balance": "No minimum balance requirement",
+        "interest_rate_pa": 2.5,
+        "interest_rate_effective": "15.06.2025",
+        "opening_channel": "YONO, fully digital, video KYC, no branch visit",
+        "card_issued": "RuPay Classic"
+      },
+      "landing_url": "https://sbi.bank.in/web/yono/insta-plus-savings-bank-account",
+      "primary_use": "onboarding / acquisition default for new customers",
+      "tax_saving": false
+    },
+    {
+      "product_id": "acc_savings_regular",
+      "name": "Regular Savings Bank Account",
+      "category": "accounts",
+      "depth": "reference",
+      "verified": true,
+      "verification_source": "interest rate: sbi.bank.in/web/interest-rates/savings-bank-deposits (fetched 2026-06-20); min-balance waiver / chequebook not yet primary-confirmed",
+      "description": "Standard SBI savings account with chequebook, debit card, and full YONO/net-banking access. No minimum balance requirement (AMB penalty waived).",
+      "eligibility_rules": {
+        "min_age": 18,
+        "requires_kyc": true,
+        "min_balance": 0
+      },
+      "key_facts": {
+        "min_balance": "No minimum balance (AMB requirement waived)",
+        "interest_rate_pa": 2.5,
+        "interest_rate_effective": "15.06.2025",
+        "chequebook": "First 10 cheque leaves free per financial year (not yet primary-confirmed)"
+      },
+      "landing_url": "placeholder://sbi/savings-account",
+      "primary_use": "general savings account for customers wanting chequebook/full features",
+      "tax_saving": false
+    },
+    {
+      "product_id": "dep_fd_regular",
+      "name": "Fixed Deposit (Regular)",
+      "category": "deposits",
+      "depth": "full",
+      "verified": true,
+      "verification_source": "sbi.bank.in/web/yono/fixed-deposit (primary source, fetched 2026-06-20)",
+      "description": "Lump-sum term deposit at a fixed interest rate. Flexible tenure; loan/overdraft against FD available (90% for STDR, 75% for TDR).",
+      "eligibility_rules": {
+        "min_amount": 1000,
+        "max_amount": 9999999,
+        "min_tenure_days": 7,
+        "max_tenure_days": 3650,
+        "requires_existing_account": true
+      },
+      "key_facts": {
+        "min_amount": "Rs 1,000 minimum, multiples of Rs 100 thereafter",
+        "max_amount": "Rs 99,99,999 at one instance",
+        "tenure": "7 days to 10 years",
+        "senior_citizen_bonus": "0.50% higher rate",
+        "premature_withdrawal": "Penalty waived up to Rs 5 lakh; 0.5% on applicable rate above Rs 5 lakh",
+        "loan_against_fd": "Up to 90% (STDR) / 75% (TDR) of FD value",
+        "indicative_rates": "6.95% p.a. (2 to <3 yr), 7.05% p.a. (5 to 10 yr) — as fetched 2026-06-20"
+      },
+      "landing_url": "https://sbi.bank.in/web/yono/fixed-deposit",
+      "primary_use": "idle balance — conservative option",
+      "tax_saving": false
+    },
+    {
+      "product_id": "dep_mod_autosweep",
+      "name": "Multi Option Deposit Scheme (MOD) / Auto Sweep",
+      "category": "deposits",
+      "depth": "full",
+      "verified": true,
+      "verification_source": "sbi.bank.in/web/personal-banking/investments-deposits/deposits/mod (primary source, fetched directly, last updated by SBI 01-12-2025)",
+      "description": "Links a savings account to an FD-like sweep. Balance above a threshold auto-sweeps into a higher-interest deposit; reverse-sweeps back when the savings balance falls short. This is the real SBI product underlying APEX's Level 3 standing-rule example.",
+      "eligibility_rules": {
+        "auto_sweep_threshold": 50000,
+        "auto_sweep_floor": 35000,
+        "min_sweep_amount": 15000,
+        "sweep_multiple": 5000,
+        "min_tenor_years": 1,
+        "max_tenor_years": 5,
+        "auto_sweep_eligible_account_types": [
+          "savings_plus",
+          "salary_package",
+          "wealth",
+          "minor"
+        ],
+        "requires_existing_account": true
+      },
+      "key_facts": {
+        "sweep_threshold": "Sweeps when savings balance exceeds Rs 50,000",
+        "resultant_floor": "Won't sweep below Rs 35,000 remaining",
+        "sweep_increment": "Rs 15,000, in multiples of Rs 5,000",
+        "standalone_mod": "Can be opened irrespective of threshold/resultant balance — no separate minimum confirmed by primary source",
+        "reverse_sweep": "Auto-reverses in Rs 5,000 units; full reversal once TDR hits Rs 15,000; LIFO default, FIFO optional",
+        "interest": "Quarterly compounding; senior citizens get an additional rate; super seniors do not",
+        "account_type": "TDR/STDR"
+      },
+      "landing_url": "https://sbi.bank.in/web/personal-banking/investments-deposits/deposits/mod",
+      "primary_use": "idle balance sitting well above Rs 50,000 — Level 3 standing rule",
+      "tax_saving": false
+    },
+    {
+      "product_id": "dep_rd",
+      "name": "Recurring Deposit",
+      "category": "deposits",
+      "depth": "full",
+      "verified": true,
+      "verification_source": "sbi.bank.in/web/personal-banking/investments-deposits/deposits/recurring-deposit (primary source, fetched 2026-06-20)",
+      "description": "Fixed monthly contributions over a set tenure earning FD-equivalent interest. Good for disciplined regular saving.",
+      "eligibility_rules": {
+        "min_monthly_amount": 100,
+        "min_tenure_months": 12,
+        "max_tenure_months": 120,
+        "requires_existing_account": true
+      },
+      "key_facts": {
+        "min_monthly_amount": "Rs 100 per month, multiples of Rs 10 thereafter",
+        "tenure": "12 months to 120 months (1 to 10 years)"
+      },
+      "landing_url": "https://sbi.bank.in/web/yono/recuring-deposit",
+      "primary_use": "regular monthly saving habit",
+      "tax_saving": false
+    },
+    {
+      "product_id": "dep_tax_saver_fd",
+      "name": "Tax Saver Fixed Deposit",
+      "category": "deposits",
+      "depth": "full",
+      "verified": true,
+      "verification_source": "sbi.bank.in/web/yono/tax-saver-fixed-deposit (primary source, fetched 2026-06-20)",
+      "description": "5-year lock-in FD eligible for tax deduction up to Rs 1.5 lakh under Section 80C. Cannot be encashed before 5 years (except on death) and no loan/overdraft is allowed against it.",
+      "eligibility_rules": {
+        "min_amount": 1000,
+        "min_amount_senior": 10000,
+        "lock_in_years": 5,
+        "max_tenure_years": 10,
+        "max_80c_deduction": 150000,
+        "requires_existing_account": true
+      },
+      "key_facts": {
+        "tax_benefit": "Up to Rs 1.5 lakh deduction under Section 80C",
+        "min_amount": "Rs 1,000 (multiples of Rs 100); senior citizens Rs 10,000 minimum",
+        "lock_in": "5 years; no premature encashment except on death of depositor",
+        "tenure": "5 to 10 years",
+        "loan_against": "Not allowed (no OD on Tax Saver FD)"
+      },
+      "landing_url": "https://sbi.bank.in/web/yono/tax-saver-fixed-deposit",
+      "primary_use": "tax-saving need near financial year end",
+      "tax_saving": true
+    },
+    {
+      "product_id": "inv_jannivesh_sip",
+      "name": "JanNivesh SIP",
+      "category": "investments",
+      "depth": "full",
+      "verified": true,
+      "verification_source": "SBI Mutual Fund JanNivesh 250 SIP — confirmed via multiple sources 2026-06-20 (Rs 250 min; daily/weekly/monthly; SBI Balanced Advantage Fund). Not yet fetched from sbimf.com primary page.",
+      "description": "Micro-SIP starting at Rs 250, designed for first-time investors and small savers. Currently on SBI Balanced Advantage Fund. Zero-folio instant start through YONO.",
+      "eligibility_rules": {
+        "min_amount": 250,
+        "requires_mf_kyc": true,
+        "frequencies": [
+          "daily",
+          "weekly",
+          "monthly"
+        ]
+      },
+      "key_facts": {
+        "min_amount": "Rs 250",
+        "increments": "Rs 50/100/200/500/1000 above the minimum",
+        "fund": "SBI Balanced Advantage Fund (dynamic equity/debt mix)",
+        "transaction_charges": "Waived for bank-transfer micro-SIPs"
+      },
+      "landing_url": "https://sbi.bank.in/web/yono/invest-in-mutual-fund",
+      "primary_use": "idle balance — first-time / small investor",
+      "tax_saving": false
+    },
+    {
+      "product_id": "inv_sbi_mutual_fund",
+      "name": "SBI Mutual Fund (SIP / Lumpsum)",
+      "category": "investments",
+      "depth": "full",
+      "verified": true,
+      "verification_source": "SBI Mutual Fund (sbimf.com) — min SIP varies by scheme (~Rs 500 typical); not yet fetched from primary scheme pages 2026-06-20",
+      "description": "Over 40 mutual fund schemes (equity, hybrid, debt, solution-oriented), investable via lumpsum or SIP through YONO with zero-folio instant start.",
+      "eligibility_rules": {
+        "min_sip_amount": 500,
+        "requires_mf_kyc": true
+      },
+      "key_facts": {
+        "schemes": "40+ schemes across categories",
+        "typical_min_sip": "Rs 500 for most schemes (varies by scheme)"
+      },
+      "landing_url": "https://sbi.bank.in/web/yono/invest-in-mutual-fund",
+      "primary_use": "broader investing once customer is past first SIP",
+      "tax_saving": false
+    },
+    {
+      "product_id": "inv_ppf",
+      "name": "PPF Account",
+      "category": "investments",
+      "depth": "full",
+      "verified": true,
+      "verification_source": "sbi.bank.in/web/yono/ppf-account-opening (primary source, fetched 2026-06-20)",
+      "description": "Public Provident Fund — long-term, government-backed tax-advantaged savings with a 15-year term, extendable in 5-year blocks. Autopay via standing instruction available through YONO.",
+      "eligibility_rules": {
+        "min_annual_contribution": 500,
+        "max_annual_contribution": 150000,
+        "term_years": 15,
+        "requires_existing_account": true
+      },
+      "key_facts": {
+        "min_annual": "Rs 500 per year, multiples of Rs 50",
+        "max_annual": "Rs 1.5 lakh per financial year",
+        "max_monthly_autopay": "~Rs 12,500 to stay within annual limit",
+        "interest_rate_pa": "7.10% p.a. (w.e.f. 01.04.2020), compounded annually; government reviews quarterly",
+        "term": "15 years from end of FY of opening; extendable in 5-year blocks, unlimited",
+        "tax": "80C eligible; interest fully tax-free"
+      },
+      "landing_url": "https://sbi.bank.in/web/yono/ppf-account-opening",
+      "primary_use": "long-term tax-advantaged saving",
+      "tax_saving": true
+    },
+    {
+      "product_id": "inv_nps",
+      "name": "National Pension System (NPS)",
+      "category": "investments",
+      "depth": "full",
+      "verified": true,
+      "verification_source": "npstrust.org.in/benefits-of-nps + sbi.bank.in/web/personal-banking/investments-deposits/govt-schemes/nps (fetched 2026-06-20)",
+      "description": "Government retirement savings scheme with market-linked returns. Offers an additional Rs 50,000 tax deduction under Section 80CCD(1B), over and above the Rs 1.5 lakh 80C ceiling.",
+      "eligibility_rules": {
+        "min_age": 18,
+        "max_age": 70,
+        "min_annual_contribution": 1000,
+        "min_per_contribution": 500
+      },
+      "key_facts": {
+        "min_contribution": "Rs 1,000 per year minimum (Rs 500 minimum per contribution)",
+        "tax_benefit_80ccd_1b": "Additional Rs 50,000 deduction over and above the Rs 1.5 lakh 80C/80CCE limit",
+        "tax_benefit_80cce": "Within the overall Rs 1.5 lakh limit (10% of Basic + DA)"
+      },
+      "landing_url": "https://sbi.bank.in/web/yono/national-pension-system",
+      "primary_use": "tax-saving — additional Rs 50k under 80CCD(1B) for customers who have maxed 80C",
+      "tax_saving": false
+    },
+    {
+      "product_id": "ins_eshield_insta",
+      "name": "SBI Life - eShield Insta",
+      "category": "insurance",
+      "depth": "full",
+      "verified": true,
+      "verification_source": "sbilife.co.in/en/individual-life-insurance/protection-plans/eshield-insta (primary source, fetched 2026-06-20)",
+      "description": "Digital term insurance with a simple 3-step process. Plan A: pure term. Plan B: term with return of premium. No medicals for cover up to Rs 75 lakh for ages up to 40 — the low-friction nature makes it suitable for sensitive-moment scenarios.",
+      "eligibility_rules": {
+        "min_age": 18,
+        "no_medical_up_to_cover": 7500000,
+        "no_medical_max_age": 40,
+        "plan_options": [
+          "pure_term",
+          "term_with_return_of_premium"
+        ]
+      },
+      "key_facts": {
+        "medical_test": "No medicals for cover up to Rs 75 lakh for ages up to 40 (subject to no adverse declaration)",
+        "process": "Simple digital process via YONO / SBI Life",
+        "plan_a": "Pure term, no maturity benefit",
+        "plan_b": "Term with Return of Premium — 100% of premiums returned on survival to maturity",
+        "uin": "111N141V01 (also issued as 111N141V02)"
+      },
+      "landing_url": "https://www.sbilife.co.in/en/individual-life-insurance/protection-plans/eshield-insta",
+      "primary_use": "life-event / protection signal — handled with ethical restraint",
+      "tax_saving": false
+    },
+    {
+      "product_id": "ins_general",
+      "name": "SBI General Insurance (Health / Motor / Home)",
+      "category": "insurance",
+      "depth": "reference",
+      "verified": true,
+      "verification_source": "sbigeneral.in/product + sbigeneral.in/health-insurance (fetched 2026-06-20)",
+      "description": "Non-life insurance covering health, motor, and home. Tier A by design (asset-purchase insight nudge) but depth stays reference — eligibility varies too much by product line for a single machine-checkable rule.",
+      "eligibility_rules": {
+        "note": "Varies significantly by product line (health/motor/home)"
+      },
+      "key_facts": {
+        "health": "Health Alpha, Super Health, Arogya Top-up, Super Top-Up; sum insured up to Rs 2 crore",
+        "motor": "Private Car Package, Two Wheeler insurance",
+        "home": "Bharat Griha Raksha, Griha Raksha Plus, Simple Home Insurance"
+      },
+      "landing_url": "https://www.sbigeneral.in/product",
+      "primary_use": "health-scare or asset-purchase signals",
+      "tax_saving": false
+    },
+    {
+      "product_id": "loan_pre_approved_personal",
+      "name": "Pre-Approved Personal Loan (PAPL)",
+      "category": "loans",
+      "depth": "full",
+      "verified": true,
+      "verification_source": "sbi.bank.in/web/yono/pre-approved-personal-loan + sbi.bank.in/web/customer-care/pre-approved-personal-loan-papl- (fetched 2026-06-20)",
+      "description": "Instant pre-approved personal loan for selected customers, disbursed in minutes via a paperless YONO flow. Eligibility is determined by SBI's own pre-qualification, not by APEX.",
+      "eligibility_rules": {
+        "requires_papl_offer": true,
+        "eligibility_check": "SMS 'PAPL <last 4 digits of account>' to 567676, or PAPL banner in YONO",
+        "note": "PAPL is an offer to selected customers — APEX reads the offer flag, never determines it"
+      },
+      "key_facts": {
+        "disbursal": "Within minutes, paperless via YONO",
+        "repayment": "6 to 84 months depending on variant",
+        "processing_fee": "Nil to maximum Rs 10,000 + GST, by variant",
+        "eligibility_channels": "SMS / email / in-app / Internet Banking offer section"
+      },
+      "landing_url": "https://sbi.bank.in/web/yono/pre-approved-personal-loan",
+      "primary_use": "cash-flow stress signal where customer already holds a PAPL offer",
+      "tax_saving": false
+    },
+    {
+      "product_id": "loan_against_fd",
+      "name": "Loan Against Fixed Deposit",
+      "category": "loans",
+      "depth": "full",
+      "verified": true,
+      "verification_source": "sbi.bank.in/web/yono/loan-against-fixed-deposit (fetched 2026-06-20)",
+      "description": "Overdraft against an existing FD without premature closure — min Rs 5,000, up to 90% of FD value, at ~1% above the FD rate on daily reducing balance. Zero processing fee, no prepayment penalty.",
+      "eligibility_rules": {
+        "requires_existing_fd": true,
+        "min_loan": 5000,
+        "max_loan_pct_of_fd": 90
+      },
+      "key_facts": {
+        "min_loan": "Rs 5,000",
+        "max_loan": "Up to 90% of FD value",
+        "rate": "~1% above applicable FD rate, daily reducing balance",
+        "facility": "Overdraft — no premature closure of FD",
+        "processing_fee": "Nil; no prepayment penalty"
+      },
+      "landing_url": "https://sbi.bank.in/web/yono/loan-against-fixed-deposit",
+      "primary_use": "liquidity need when customer holds an FD — alternative to premature withdrawal",
+      "tax_saving": false
+    },
+    {
+      "product_id": "loan_home",
+      "name": "Home Loan",
+      "category": "loans",
+      "depth": "full",
+      "verified": true,
+      "verification_source": "sbi.bank.in/web/interest-rates/interest-rates/loan-schemes-interest-rates (fetched 2026-06-20)",
+      "description": "Housing loan for purchase/construction. Long tenure, property as collateral. Signal targets sustained renters (owns_property = false); APEX pre-screens on income, SBI does final underwriting/LTV.",
+      "eligibility_rules": {
+        "min_age": 18,
+        "requires_income": true,
+        "min_monthly_income": 25000,
+        "note": "min_monthly_income is an APEX pre-screen heuristic, not an SBI rule; SBI determines final eligibility and LTV"
+      },
+      "key_facts": {
+        "indicative_rate_from": "7.25% p.a. onwards (w.e.f. 01.04.2026)"
+      },
+      "landing_url": "https://sbi.bank.in/web/personal-banking/loans/home-loans",
+      "primary_use": "major life-transition signal (e.g. sustained rent payments)",
+      "tax_saving": false
+    },
+    {
+      "product_id": "loan_personal",
+      "name": "Personal Loan",
+      "category": "loans",
+      "depth": "full",
+      "verified": true,
+      "verification_source": "sbi.bank.in/web/interest-rates/interest-rates/loan-schemes-interest-rates + sbi.bank.in/web/personal-banking/loans/personal-loans/sbi-personal-loan (fetched 2026-06-20)",
+      "description": "Unsecured personal loan (incl. Xpress Credit) for salaried customers, with a real-time end-to-end digital variant via YONO. The cash-need route when no PAPL offer exists.",
+      "eligibility_rules": {
+        "requires_income": true,
+        "min_monthly_income": 15000,
+        "note": "min_monthly_income is an APEX pre-screen heuristic; SBI does final credit assessment"
+      },
+      "key_facts": {
+        "indicative_rate_from": "10.00% p.a. onwards",
+        "note": "Distinct from PAPL — this is the non-pre-approved route"
+      },
+      "landing_url": "https://sbi.bank.in/web/personal-banking/loans/personal-loans/sbi-personal-loan",
+      "primary_use": "cash need without a pre-approved offer",
+      "tax_saving": false
+    },
+    {
+      "product_id": "loan_education",
+      "name": "Education Loan",
+      "category": "loans",
+      "depth": "full",
+      "verified": true,
+      "verification_source": "sbi.bank.in/web/interest-rates/interest-rates/loan-schemes-interest-rates (fetched 2026-06-20)",
+      "description": "Loan for higher education, domestic or overseas. Signal targets customers with a tuition-payment pattern and dependents; admission proof required at application.",
+      "eligibility_rules": {
+        "requires_dependents": true,
+        "requires_admission_at_application": true,
+        "note": "APEX pre-screens on dependents + tuition pattern; admission/co-applicant confirmed by SBI"
+      },
+      "key_facts": {
+        "indicative_rate_from": "6.90% p.a. onwards"
+      },
+      "landing_url": "https://sbi.bank.in/web/personal-banking/loans/education-loans",
+      "primary_use": "child reaching college age / tuition payment signal",
+      "tax_saving": false
+    },
+    {
+      "product_id": "loan_auto",
+      "name": "Auto Loan",
+      "category": "loans",
+      "depth": "full",
+      "verified": true,
+      "verification_source": "sbi.bank.in/web/interest-rates/interest-rates/loan-schemes-interest-rates + sbi.bank.in/web/yono/pre-approved-car-loan (fetched 2026-06-20)",
+      "description": "Vehicle purchase loan. Triggered by a large vehicle-category purchase signal; APEX pre-screens on income, SBI does final underwriting.",
+      "eligibility_rules": {
+        "requires_income": true,
+        "min_monthly_income": 20000,
+        "note": "min_monthly_income is an APEX pre-screen heuristic; SBI determines final eligibility"
+      },
+      "key_facts": {
+        "indicative_rate_from": "8.90% p.a. onwards"
+      },
+      "landing_url": "https://sbi.bank.in/web/yono/pre-approved-car-loan",
+      "primary_use": "vehicle-purchase intent signal",
+      "tax_saving": false
+    },
+    {
+      "product_id": "loan_gold",
+      "name": "Gold Loan",
+      "category": "loans",
+      "depth": "full",
+      "verified": true,
+      "verification_source": "sbi.bank.in/web/interest-rates/interest-rates/loan-schemes-interest-rates (fetched 2026-06-20)",
+      "description": "Loan against gold collateral. Triggered by a short-term liquidity-gap pattern for customers who hold gold (owns_gold).",
+      "eligibility_rules": {
+        "requires_gold_collateral": true,
+        "requires_owns_gold": true
+      },
+      "key_facts": {
+        "indicative_rate_from": "8.70% p.a. onwards"
+      },
+      "landing_url": "https://sbi.bank.in/web/personal-banking/loans/gold-loan",
+      "primary_use": "short-term liquidity / cash-flow gap",
+      "tax_saving": false
+    },
+    {
+      "product_id": "loan_against_mf",
+      "name": "Loan Against Mutual Funds",
+      "category": "loans",
+      "depth": "full",
+      "verified": true,
+      "verification_source": "sbi.bank.in/web/interest-rates/interest-rates/loan-schemes-interest-rates/loan-against-securities-and-consumer-durable-loans (fetched 2026-06-20)",
+      "description": "Overdraft/loan against mutual fund holdings as collateral (loan against securities). Routed from the cash-flow-stress signal when the customer holds MF units.",
+      "eligibility_rules": {
+        "requires_mf_holdings": true
+      },
+      "key_facts": {
+        "indicative_rate_from": "9.95% p.a. (w.e.f. 15.12.2025)"
+      },
+      "landing_url": "https://sbi.bank.in/web/personal-banking/loans/loans-against-securities/loan-against-mutual-fund-units",
+      "primary_use": "liquidity need for customers holding MF investments",
+      "tax_saving": false
+    },
+    {
+      "product_id": "pay_epay_autopay",
+      "name": "e-PAY / Bharat Bill Payment System (AutoPay)",
+      "category": "payments",
+      "depth": "full",
+      "verified": true,
+      "verification_source": "sbi.bank.in/web/yono/bill-payments + retail.sbi.bank.in/npersonal/billpay_faq.html (fetched 2026-06-20)",
+      "description": "Bill payment service with an AutoPay feature: customer sets an upper limit, and bills within that limit are paid automatically when due. Handles variable bills (electricity, water) better than a fixed standing instruction. Editable/cancellable per biller.",
+      "eligibility_rules": {
+        "requires_existing_account": true,
+        "autopay_uses_upper_limit": true
+      },
+      "key_facts": {
+        "mechanism": "Set an upper limit; bills within it auto-pay when due, bills above the limit are not processed",
+        "edit": "Edit/cancel AutoPay per biller anytime",
+        "routing": "YONO Pay > BBPS redirects to SBI Unipay (Customer + Biller Operating Unit under BBPS)"
+      },
+      "landing_url": "https://sbi.bank.in/web/yono/bill-payments",
+      "primary_use": "manual recurring bill payment detected — autopay nudge",
+      "tax_saving": false
+    },
+    {
+      "product_id": "pay_standing_instruction",
+      "name": "Standing Instruction",
+      "category": "payments",
+      "depth": "reference",
+      "verified": true,
+      "verification_source": "SBI Standing Instruction — YONO/OnlineSBI service; feature confirmed 2026-06-20 (no standalone public product page)",
+      "description": "Fixed-amount recurring transfer to a beneficiary at set intervals (e.g. rent, PPF contribution). Best for fixed amounts, unlike AutoPay which suits variable bills.",
+      "eligibility_rules": {
+        "requires_existing_account": true,
+        "requires_beneficiary": true,
+        "fixed_amount": true
+      },
+      "key_facts": {
+        "best_for": "Fixed recurring payments (rent, fixed transfers)",
+        "setup": "YONO > Services > Standing Instruction"
+      },
+      "landing_url": "placeholder://sbi/standing-instruction",
+      "primary_use": "Concierge — fixed recurring transfer setup (no proactive signal)",
+      "tax_saving": false
+    },
+    {
+      "product_id": "pay_bhim_upi",
+      "name": "BHIM SBI Pay (UPI)",
+      "category": "payments",
+      "depth": "reference",
+      "verified": true,
+      "description": "UPI payments through SBI. The all-new YONO also lets other-bank customers use it for UPI.",
+      "eligibility_rules": {
+        "requires_account": true,
+        "requires_upi_setup": true
+      },
+      "key_facts": {
+        "note": "UPI available within YONO; cross-bank UPI supported since 2023"
+      },
+      "landing_url": "https://sbi.bank.in/web/personal-banking/digital/bhim-sbi-pay",
+      "primary_use": "payments adoption — customer transacting via competitor UPI apps",
+      "tax_saving": false
+    },
+    {
+      "product_id": "pay_yono_cash",
+      "name": "YONO Cash (Cardless ATM Withdrawal)",
+      "category": "payments",
+      "depth": "full",
+      "verified": true,
+      "verification_source": "sbi.bank.in/web/yono (YONO Cash feature) — confirmed 2026-06-20",
+      "description": "Withdraw cash from SBI ATMs / merchant POS without a physical card, using a reference number and dynamic PIN generated in YONO.",
+      "eligibility_rules": {
+        "requires_account": true,
+        "requires_yono": true
+      },
+      "key_facts": {
+        "mechanism": "Generate reference number + dynamic PIN in YONO, withdraw cardless"
+      },
+      "landing_url": "https://sbi.bank.in/web/yono/yono-cash-at-atm",
+      "primary_use": "feature-adoption / mobile-banking engagement",
+      "tax_saving": false
+    },
+    {
+      "product_id": "acc_salary_package",
+      "name": "Salary Package Account (SBI Corporate Salary Package)",
+      "category": "accounts",
+      "depth": "full",
+      "verified": true,
+      "verification_source": "sbi.bank.in/web/salary-account/corporate-salary-package (primary source, fetched 2026-06-20)",
+      "description": "Zero-balance salary account with complimentary accident insurance and tiered benefits for customers receiving regular salary credits. APEX's upgrade target when a salary-credit pattern lands in a plain savings account.",
+      "eligibility_rules": {
+        "requires_salary_credit": true,
+        "min_monthly_salary": null,
+        "conversion": "Apply at home branch with proof of salary/employment to convert an existing savings account"
+      },
+      "key_facts": {
+        "tiers": "Gold, Diamond, Platinum, Rhodium — upgradeable on proof of salary increase or rank elevation",
+        "complimentary_cover": "Personal Accident + Air Accident cover, Rs 30 lakh to Rs 100 lakh by tier; additional RuPay debit-card cover up to Rs 10 lakh",
+        "balance": "Zero balance",
+        "reversion": "Reverts to a normal savings account if salary is not credited for more than 3 consecutive months"
+      },
+      "landing_url": "https://sbi.bank.in/web/salary-account/corporate-salary-package",
+      "primary_use": "regular salary credits detected in a plain savings account — upgrade",
+      "tax_saving": false
+    },
+    {
+      "product_id": "ins_pmjjby",
+      "name": "Pradhan Mantri Jeevan Jyoti Bima Yojana (PMJJBY)",
+      "category": "insurance",
+      "depth": "full",
+      "verified": true,
+      "verification_source": "jansuraksha.gov.in (PMJJBY scheme rules) + multiple sources, fetched 2026-06-20",
+      "description": "Government-backed term life cover available through an SBI savings account via annual auto-debit. Ultra-low-cost mass-market protection — aligns directly with the financial-inclusion thesis.",
+      "eligibility_rules": {
+        "min_age": 18,
+        "max_age": 50,
+        "cover_continues_to_age": 55,
+        "requires_savings_account": true,
+        "requires_auto_debit_consent": true
+      },
+      "key_facts": {
+        "cover": "Rs 2 lakh life cover on death due to any cause",
+        "premium": "Rs 436 per year via auto-debit",
+        "entry_age": "18 to 50 years; cover continues to age 55 if premium paid annually"
+      },
+      "landing_url": "https://www.jansuraksha.gov.in/",
+      "primary_use": "protection gap — income customer with no life cover",
+      "tax_saving": false
+    },
+    {
+      "product_id": "ins_pmsby",
+      "name": "Pradhan Mantri Suraksha Bima Yojana (PMSBY)",
+      "category": "insurance",
+      "depth": "full",
+      "verified": true,
+      "verification_source": "jansuraksha.gov.in (PMSBY scheme rules) + multiple sources, fetched 2026-06-20",
+      "description": "Government-backed accidental death and disability cover via SBI savings-account auto-debit. Companion to PMJJBY for low-cost inclusion protection.",
+      "eligibility_rules": {
+        "min_age": 18,
+        "max_age": 70,
+        "requires_savings_account": true,
+        "requires_auto_debit_consent": true
+      },
+      "key_facts": {
+        "cover": "Rs 2 lakh accidental death / permanent total disability (Rs 1 lakh partial disability)",
+        "premium": "Rs 20 per year via auto-debit",
+        "entry_age": "18 to 70 years"
+      },
+      "landing_url": "https://www.jansuraksha.gov.in/",
+      "primary_use": "protection gap — income customer with no accident cover",
+      "tax_saving": false
+    },
+    {
+      "product_id": "card_credit",
+      "name": "SBI Credit Card (Pre-Approved)",
+      "category": "cards",
+      "depth": "full",
+      "verified": true,
+      "verification_source": "sbicard.com (SimplySAVE / SimplyCLICK product pages + first-year-free pre-approved SimplySAVE UPI T&C), fetched 2026-06-20",
+      "description": "Pre-approved credit card offered to selected customers from SBI's own pre-qualification. APEX reads the pre-approved offer flag and surfaces it on a healthy-spend pattern — it never determines creditworthiness, mirroring the PAPL handling.",
+      "eligibility_rules": {
+        "requires_card_offer": true,
+        "note": "Pre-approved offer is determined by SBI, not APEX — APEX reads the has_card_offer flag, never sets it"
+      },
+      "key_facts": {
+        "common_variants": "SimplySAVE (10x rewards on dining/groceries, 0% fuel surcharge), SimplyCLICK (10x online rewards on partner brands)",
+        "fees_example": "SimplySAVE: Rs 499 annual + Rs 499 renewal; renewal fee reversed on spends of Rs 1,00,000+ in the prior year",
+        "preapproved_offer": "Pre-approved SimplySAVE UPI variant available with first-year-free for selected customers"
+      },
+      "landing_url": "https://www.sbicard.com/en/personal/credit-cards/shopping/simplysave-sbi-card.page",
+      "primary_use": "pre-approved card offer + active spend pattern",
+      "tax_saving": false
+    }
+  ]
+}
