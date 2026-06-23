@@ -1,23 +1,26 @@
-"""Groq LLM calls for the Analyser graph nodes.
+"""Groq LLM calls for Analyser mode.
 
-Three plain-text calls — hypothesise / critique / compose. Each is best-effort: any failure
-(no key, rate limit) returns "" so the graph still completes (the deterministic gate and DB
-writes never depend on the LLM succeeding).
+Best-effort by design: any failure (no key, rate limit, bad JSON) returns ""/{} so the
+deterministic gate and DB writes never depend on the LLM succeeding. The act/wait/escalate
+decision and the safe product set are settled in code (guardrails.py) before the LLM is asked
+anything — the LLM only picks the best fit from a vetted shortlist and writes the message.
 """
 from __future__ import annotations
+
+import json
 
 from ..config import GROQ_API_KEY, GROQ_MODEL
 from ._shared import get_client
 from .prompts import (
-    SYSTEM_PROMPT, build_compose_prompt, build_critique_prompt, build_explain_prompt,
-    build_hypothesise_prompt, build_reengage_prompt,
+    SYSTEM_PROMPT, build_explain_prompt, build_reengage_prompt, build_select_prompt,
 )
 
 
-def _chat(user: str, temperature: float = 0.4) -> str:
+def _chat(user: str, temperature: float = 0.4, json_mode: bool = False) -> str:
     if not GROQ_API_KEY:
         return ""
     try:
+        kwargs = {"response_format": {"type": "json_object"}} if json_mode else {}
         resp = get_client().chat.completions.create(
             model=GROQ_MODEL,
             temperature=temperature,
@@ -25,22 +28,32 @@ def _chat(user: str, temperature: float = 0.4) -> str:
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user},
             ],
+            **kwargs,
         )
         return (resp.choices[0].message.content or "").strip()
     except Exception:  # noqa: BLE001 — never let one bad call break the batch
         return ""
 
 
-def hypothesise(payload: dict) -> str:
-    return _chat(build_hypothesise_prompt(payload), temperature=0.4)
-
-
-def critique(payload: dict) -> str:
-    return _chat(build_critique_prompt(payload), temperature=0.3)
-
-
-def compose(payload: dict) -> str:
-    return _chat(build_compose_prompt(payload), temperature=0.4)
+def select_and_compose(payload: dict) -> dict:
+    """Pick the best-fit product from the vetted shortlist + write the message, in one call.
+    Returns {"product_id", "reason", "message"} or {} on any failure (caller falls back to the
+    top-ranked product + a deterministic message)."""
+    raw = _chat(build_select_prompt(payload), temperature=0.4, json_mode=True)
+    if not raw:
+        return {}
+    txt = raw.removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+    try:
+        data = json.loads(txt)
+    except Exception:  # noqa: BLE001
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    return {
+        "product_id": data.get("product_id"),
+        "reason": (data.get("reason") or "").strip(),
+        "message": (data.get("message") or "").strip(),
+    }
 
 
 def reengage(payload: dict) -> str:

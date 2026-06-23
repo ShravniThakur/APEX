@@ -73,16 +73,16 @@ python -m apex.agent.reengage --days 0          # --days 0 revisits all waits no
 
 ### Agent-loop flags (`python -m apex.agent.loop ...`)
 
-The bare command processes **all** Analyser signals, wiping prior decisions first, and writes results without sending any email. These flags change that:
+The bare command processes **all customers** with Analyser signals (one decision per customer), wiping prior decisions first, and writes results without sending any email. These flags change that:
 
-- **`--limit N`** — process only the **first N signals** (oldest first), instead of all of them.
-  *Why:* each acted signal makes LLM calls, so a full run is slow and burns API quota. Use `--limit 6` while iterating to get a fast result. Example: `python -m apex.agent.loop --limit 6`.
+- **`--limit N`** — process only the **first N customers** (oldest signal first), instead of all of them.
+  *Why:* each *acted* customer makes one LLM call, so a full run is slow and burns API quota. Use `--limit 6` while iterating to get a fast result. Example: `python -m apex.agent.loop --limit 6`.
 
 - **`--send`** — actually **deliver** the acted messages as real email (via Resend). Without it, the loop still writes the `ACTIONS` rows but `sent_at` stays null (nothing leaves the machine).
   *Needs:* `RESEND_API_KEY` + `APEX_DEMO_EMAIL` in `.env`. In non-prod every email routes to the demo sink, never a real customer. Example: `python -m apex.agent.loop --limit 3 --send`.
 
-- **`--incremental`** — **keep** the existing decision/outcome history instead of wiping it, and **skip** any customer already handled (dismissed/adopted) or contacted within the 30-day cooldown.
-  *Why:* the default (full reset) is for a clean, repeatable demo. `--incremental` is the *production-style* behavior that proves the feedback/suppression loop — you'll see `suppressed=N` in the output. Example: `python -m apex.agent.loop --incremental`.
+- **`--incremental`** — **keep** the existing decision/outcome history instead of wiping it, so that when each customer's safe set is built the **dismissal back-off** (a category dismissed ≥2× is dropped), the **held-filter** (adopted products drop out), and the **30-day product cooldown** (a product recommended recently isn't repeated) all take effect.
+  *Why:* the default (full reset) is for a clean, repeatable demo. `--incremental` is the *production-style* behavior that proves the feedback/suppression loop — on a re-run a customer's previously-recommended product is held back, so they get a *different* eligible product or resolve to `wait` rather than being re-nudged with the same thing. Example: `python -m apex.agent.loop --incremental`.
 
 Flags combine freely, e.g. `python -m apex.agent.loop --incremental --limit 6 --send`.
 
@@ -142,7 +142,7 @@ The Analyser already ran in step 1.7; the dashboard reads its output.
 |---|---|---|---|
 | **Priya Nair** | `idle_balance` | **act** → MOD/Auto-Sweep or JanNivesh SIP | A calm savings nudge; authority level set; deep link present |
 | **Vikram Patel** (Hindi) | `manual_recurring_payment` | **act** → e-PAY AutoPay | Message is in **Hindi**; references paying the bill manually |
-| **Anjali Desai** | `life_event` (medical) | **wait** — *no product push* | The money shot: hypothesis/critique show restraint; **no message generated**, decision logged as wait |
+| **Anjali Desai** | `life_event` (medical) | **wait** — *no product push* | The money shot: the code gate holds **all** outreach for her; the LLM is never called; **no message generated**, decision logged as wait with the `[gate]` reason |
 | **Ramesh Iyer** (Tamil) | `dormancy` | **act** → Insta Plus reactivation | Reactivation framing, not a new-account pitch |
 | **Suresh Kumar** | `cash_flow_stress` (severe, ~0.93) | **escalate** — no auto-push | Severely stressed with only *unsecured* debt available → routed to a human, not an auto-offer of debt. Also: his insurance gap is held back (vulnerability restraint) |
 | **Lakshmi Banerjee** (Bengali) | `cash_flow_stress` (severe) | **act** → Loan **against FD** | Severely stressed too, but steered to *secured* lending (her own FD) — never unsecured debt. The Suresh-vs-Lakshmi contrast is the nuance to show |
@@ -254,17 +254,26 @@ print('disclosed distress →', extract_and_store(cid, [{'role':'user','content'
 
 ## 5. Test Guide mode (new customer, no data) — http://localhost:5174 → "Open an account"
 
-Guide is onboarding for someone APEX knows nothing about. No sign-in. It asks questions, recommends in plain language, and hands off real SBI links.
+Guide is onboarding for someone APEX knows nothing about. It's a **tool-calling agent** (like Concierge): it calls read-only tools for the catalogue, the real document list, and a live application lookup — so its facts are grounded, never recited. It hands off real SBI links and never builds a (non-working) pre-filled deep link.
 
-Try these, in order:
+**Tier-1 — anonymous stranger (no sign-in).** Try these, in order:
 
 | Ask this | What a correct answer shows |
 |---|---|
 | *"I'm new to SBI and want to open a savings account."* | Asks a clarifying question or two first; recommends an account (e.g. Insta Plus) in plain language; offers a real link |
-| *"What documents do I need to open an account?"* | Plain-language list, no jargon |
+| *"What documents do I need to open an account?"* | Plain-language list (Aadhaar, PAN, photo, address proof) — pulled by the `get_required_documents` tool, not recited. For a **loan**, also income proof + bank statements |
 | *"I want to start saving for my child's education."* | Frames it as a life outcome (not "SIP/PPF"); may surface one or two *adjacent* areas (e.g. protection) — never a product dump |
 | *"मुझे बचत खाता खोलना है"* (Hindi: "I want to open a savings account") | Replies **in Hindi** — mirrors the customer's language |
 | *"Tell me everything SBI offers."* | Should NOT dump a brochure; gently surfaces a couple of relevant areas and points to the **Explore** tab |
+
+**Tier-2 — drop-off (identified).** A drop-off is *detected by the backend* (`application_dropoff` signal); Guide only confirms it for an **identified** person. To see it: **sign in** as a customer who has an unfinished application (one with an `in_progress`/`abandoned` row in `applications`), then open the **Open an account** tab and just say *"hi"*. Expect Guide to **proactively acknowledge the unfinished application**, name the step they stopped at (e.g. *video KYC*), list what's needed, and link to the real SBI page — without making them start over. (An anonymous visitor never gets this — it's the correct, honest behavior.)
+
+You can also drive it headless:
+```bash
+# Tier-2: pass the customer_id as identity (it maps to applications.customer_ref)
+curl -s localhost:8000/chat -H 'content-type: application/json' \
+  -d '{"mode":"guide","customer_id":"<id-with-an-application>","messages":[{"role":"user","content":"hi"}]}'
+```
 
 **Things to verify about tone (the behavioral philosophy in action):**
 - No jargon (no "SIP", "CAGR", "NAV").
@@ -306,20 +315,20 @@ This proves APEX "remembers" and backs off.
 - **I've done this** → logs `completed` **and creates a holding** (demo stand-in for SBI confirming adoption).
 - **Not interested** → logs `dismissed`.
 
-**B. See suppression work.** Re-run the agent in **incremental mode** — it keeps history and skips customers already handled or within the 30-day cooldown:
+**B. See suppression work.** Re-run the agent in **incremental mode** — it keeps history, so any product recommended within the last 30 days is held back when its customer's safe set is rebuilt:
 ```bash
 python -m apex.agent.loop --incremental
 # or via API:
 curl -X POST "localhost:8000/pipeline/agent?reset=false"
 ```
-Expect the output to report `suppressed=N` — the dismissed/adopted/recently-contacted customers are skipped, not re-nudged.
+Expect previously-acted customers to now pick a *different* eligible product (the recent one is on cooldown), or resolve to **wait** if nothing fresh remains — they are not re-nudged with the same thing. Compare the `act / wait / escalate` counts to the full-reset run.
 
 **C. The "ignored" sweep.** Mark un-answered sent actions older than N days as `ignored`:
 ```bash
 curl -X POST "localhost:8000/pipeline/expire-outcomes?days=7"
 ```
 
-**D. Category-level back-off (distinct from B).** §B suppresses the *same signal* on a cooldown. This is different: once a customer has **dismissed a whole product category ≥2×**, the deterministic gate downgrades a *future* `act` in that category to **wait** ("don't nag"), and the self-critique is handed the count as evidence. To force and verify it (the "Ravi" case from the WALKTHROUGH), seed two dismissals in one category for a customer, then re-run the agent incrementally:
+**D. Category-level back-off (distinct from B).** §B paces the *same product* (cooldown). This is different: once a customer has **dismissed a whole product category ≥2×**, `decide_customer` **strips that category from the safe set entirely** ("don't nag") — it's simply never offered again. To force and verify it (the "Ravi" case from the WALKTHROUGH), seed two dismissals in one category for a customer, then re-run the agent incrementally:
 ```bash
 python - <<'PY'
 from apex.database.db import SessionLocal
@@ -338,9 +347,9 @@ with SessionLocal() as s:
     s.commit()
 print('seeded 2 investments dismissals for Priya')
 PY
-python -m apex.agent.loop --incremental --limit 20    # her next investments-category act now resolves to WAIT
+python -m apex.agent.loop --incremental --limit 20    # investments is now stripped from her safe set
 ```
-Expect her idle-balance decision's reason to read *"customer has dismissed 'investments' 2× before — backing off"* on the ops Customer-detail trace. (Re-run the clean rebuild afterward to discard the seeded rows.)
+Expect her idle-balance outreach to **no longer offer any investments product** — the LLM picks from her remaining safe options (a deposit sweep / FD), or the decision resolves to **wait** if back-off plus cooldown leave nothing fresh. (Re-run the clean rebuild afterward to discard the seeded rows.)
 
 Verify any of this on the **ops → Customer detail** page (the outcome shows on the decision) or via `curl localhost:8000/customers/<id>`.
 
@@ -406,5 +415,5 @@ curl -X POST "localhost:8000/demo/simulate?scenario=life_event"
 | Emails not arriving with `--send` | Need `RESEND_API_KEY` + `APEX_DEMO_EMAIL`; in Resend test mode the recipient must be your own Resend account email (the sink already is). Without keys, the loop still writes ACTIONS — just doesn't deliver. |
 | Frontend can't reach API / CORS | API must be on `:8000`; set `VITE_API_URL` if you changed the port. |
 | Want a truly clean slate | `psql -c "DROP DATABASE apex;" && psql -c "CREATE DATABASE apex;"` then run the full rebuild. |
-| Agent run is slow | It calls the LLM per acted signal. Use `python -m apex.agent.loop --limit 6` while iterating. |
+| Agent run is slow | It makes one LLM call per acted customer. Use `python -m apex.agent.loop --limit 6` while iterating. |
 ```

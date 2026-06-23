@@ -1,9 +1,10 @@
-"""Deterministic signal -> product routing + eligibility (specs/signals.md routing branches).
+"""Deterministic signal -> product candidates + eligibility (specs/signals.md routing branches).
 
-This is the mechanical Hypothesise step: a signal proposes candidate products, branched
-by what the customer holds/qualifies for. The LLM never picks the product — it only
-explains and composes copy. Keeping selection deterministic is what makes the ethical
-guardrails (guardrails.py) trustworthy rather than left to model whim.
+A signal proposes an ordered (best-first) candidate list, branched by what the customer
+holds/qualifies for; `is_eligible` then filters it. The result is the *relevance-ranked,
+eligible* set — code decides what's APPROPRIATE and ALLOWED, which is what keeps the ethical
+guardrails trustworthy. Within that vetted set the Analyser LLM picks the single best fit for
+the person (guardrails.decide_customer + loop.py); it can never reach a product not listed here.
 
 Each signal maps to a `route(ctx) -> list[product_id]` ordered best-first. application_dropoff
 is Guide-mode (conversational onboarding resume) and is intentionally NOT handled here.

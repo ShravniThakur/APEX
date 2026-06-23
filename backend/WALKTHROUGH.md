@@ -90,7 +90,7 @@ These form a chain: a **score** → fires a **signal** → triggers a **decision
 |---|---|---|
 | `scores` | ML scores per customer | the ML layer |
 | `signals` | a detected trigger | signal detection (`status`: new→processed→expired) |
-| `decisions` | the agent's reasoning: `mode`, `hypothesis`, `critique_result`, `confidence`, `outcome` (act/wait/escalate), `product_id`, `rm_status` (open/resolved — the human-RM queue, used by `escalate` rows) | the agent |
+| `decisions` | the agent's reasoning: `mode`, `hypothesis` (the LLM's one-line *why-this-product* pick reason), `critique_result` (the deterministic `[gate]` reason — why act/wait/escalate), `confidence`, `outcome` (act/wait/escalate), `product_id`, `rm_status` (open/resolved — the human-RM queue, used by `escalate` rows) | the agent |
 | `actions` | what was sent: `authority_level` (1-3), `channel`, `message_text`, `deep_link`, `sent_at` | the agent |
 | `outcomes` | customer response: `response_type` (clicked/dismissed/ignored/completed) | the feedback layer |
 
@@ -285,136 +285,124 @@ This is the `agent/` folder — APEX's **brain**. It holds three "modes" of talk
 plus shared plumbing and two side-effect helpers. This section covers **Analyser mode** (the
 proactive one) and the shared pieces; Guide and Concierge are in §8b, the feedback writer in §10.
 
-The Analyser is a **LangGraph flow with a deterministic code gate** — "LLM proposes, code disposes":
+The Analyser reasons **per customer, not per signal** — it looks at *all* of one person's active
+signals at once, so restraint follows the person and the customer gets **one coherent outreach**
+instead of a separate nudge per signal. It's built on one principle — **"code disposes, the LLM
+proposes":**
 
 ```
-route → hypothesise (LLM) → critique (LLM) → decide (CODE GATE) → compose (LLM, only if act) → END
+gather a customer's signals → DECIDE (CODE GATE) → if ACT: pick best fit + compose (LLM) → record
 ```
+
+The act/wait/escalate decision, the eligibility checks, the ethical restraint, and the very *set* of
+products that are even allowed are **all deterministic code**. The LLM's only job — once code has
+decided to act — is to **pick the single best-fit product from a pre-vetted safe set and write the
+message**. It can never reach a product code didn't allow, raise the authority level, or act when
+code said hold.
 
 ### Shared plumbing (used by everything)
 
 - **`_shared.py`** — the phone line to the LLM. Creates *one* Groq client and hands the same one to
   every module (no new connection per call). Also keeps the language-code → name map (`hi → Hindi`).
 - **`prompts.py`** — the actual *words* APEX thinks in: a system prompt (personality — on the
-  customer's side, no jargon, calm, no scammy links) plus three template-builders (hypothesise,
-  critique, compose).
+  customer's side, no jargon, calm, no scammy links) plus the **select-and-compose** template
+  (pick the best fit + write the message), and the reengage/explain templates.
 - **`llm.py`** — the hand that dials. Sends a built prompt to Groq. Key logic: **on any failure (no
-  key, rate limit) it returns an empty string instead of crashing** — a dead LLM never breaks the
-  pipeline (the code gate and DB writes don't depend on it).
+  key, rate limit, bad JSON) it returns `{}`/`""` instead of crashing** — a dead LLM never breaks the
+  pipeline; the code gate has already made every decision, so the loop just falls back to the
+  top-ranked product + a deterministic message.
 
-### Analyser mode — four files, split so the LLM never makes the real decision
+### Analyser mode — split so the LLM never makes the real decision
 
-- **`routing.py` — picks the product, by fixed rules.** Given *one* signal, returns an ordered
-  candidate list, then filters by `eligibility_rules` (age, income, already-owns-it, has-an-offer).
-  It hands back both the **shortlist** (all eligible) and the **pick** (first eligible). Some signals
-  branch by what the customer holds (e.g. cash_flow_stress → PAPL / loan-vs-FD / …). The LLM is *not*
-  allowed to choose here — this decides *what*, not *whether*.
-- **`guardrails.py` — decides act / wait / escalate, by fixed rules (the code gate).** Priority:
-  `life_event` → **wait** (never push on a vulnerability); nothing eligible → **escalate**; severe
-  stress + only an unsecured personal loan → **escalate**; **holistic vulnerability restraint** — if
-  the customer has *any* active vulnerability signal (`life_event`), hold back insurance from *other*
-  signals too (so e.g. `protection_gap` can't quietly sell insurance to someone who just had a medical
-  shock); already holds it → **wait**; **dismissal back-off** — dismissed this category ≥2× before →
-  **wait** (don't nag); else → **act** at an authority level (1 insight / 2 one-tap / 3 standing rule).
-  Confidence is *derived* from how far the driving score sits past its threshold. **This overrides
-  anything the LLM implied.**
-- **`graph.py` — the wiring** (the assembly line; detailed below).
+- **`routing.py` — proposes the candidate products, by fixed rules.** Given *one* signal it returns
+  an ordered (best-first) candidate list, then `is_eligible` filters it (age, income, already-owns-it,
+  has-an-offer). The result is the *relevance-ranked, eligible* set for that signal — code decides
+  what's **appropriate** and **allowed**. Some signals branch by what the customer holds (e.g.
+  cash_flow_stress → PAPL / loan-vs-FD / …). The LLM later picks *within* this set; it can never reach
+  anything outside it.
+- **`guardrails.py` — the code gate, now per customer (`decide_customer`).** It reasons over *all* of
+  one customer's active signals together and returns act/wait/escalate plus the **safe set** — the
+  union of every signal's eligible candidates, minus held products, minus the vulnerability-locked
+  categories, minus dismissed categories, minus anything on cooldown (detailed just below). Bright-line
+  ethics live here. (The older per-signal `evaluate` is kept too, because Concierge's
+  `recommend_product` still uses it — §8b.)
 - **`loop.py` — the runner.** Loads the catalogue **from the `PRODUCTS` table** (single source of
-  truth — not the JSON file), reads the `SIGNALS` table, runs each through the graph, writes the
-  `decision` (+ `action` if act), optionally emails, marks the signal processed. It also computes the
-  per-customer **dismissal history** (per-category counts from `DECISIONS→ACTIONS→OUTCOMES`) and the
-  set of each customer's **active signals**, and passes both into the context the gate + critique use.
-  Two extra pieces: a **30-day cooldown** + suppression in incremental mode (§10), and `--send`.
+  truth — not the JSON file), groups Analyser signals **by customer** (dropping Guide's
+  `application_dropoff`), gathers each customer's data + **dismissal history** (per-category counts from
+  `DECISIONS→ACTIONS→OUTCOMES`) + **recently-recommended products** (the cooldown set), runs
+  `decide_customer`, and — *only* when it says ACT — asks the LLM to pick the best fit + compose the
+  message. Writes the `decision` (+ `action` if act), optionally emails (`--send`), marks the
+  customer's signals processed. `--limit N` = the first N customers.
 
-**How `loop.py` and `routing.py` actually relate** (a common confusion): `routing.py` never touches
-the `SIGNALS` table. `loop.py` reads the whole table *first* — filters to Analyser signals (dropping
-Guide's `application_dropoff`), sorts by time, applies `--limit` — then loops **one signal at a
-time**. It iterates over **signals, not customers**: a customer with 3 signals gets 3 separate
-passes. Routing is called *inside* each pass and only ever answers "for *this* signal, what product?"
+### How `decide_customer` works — the safe set
 
-### How the graph works (`graph.py`)
+For one customer, in order (first match wins):
 
-LangGraph here is just an **assembly line** for one signal. One dictionary — the **clipboard**
-(state) — travels through every step. It starts with `signal_type`, `source_ref`, and `ctx` (this
-customer's data). Each step reads the clipboard and writes its result back. The five stations:
+1. **Ethical pre-empt (no LLM):** an active `life_event` (recent medical event) → **whole-customer
+   wait** — APEX holds *all* outreach, not just the medical-related signal; `reengage.py` revisits
+   gently later. An active `churn_risk` → **escalate** to a human RM (never auto-push at someone
+   heading out the door).
+2. **Build the safe set:** union the eligible, unheld candidates across every remaining signal, then
+   strip — (a) **insurance + unsecured debt** if the customer is in severe stress (the vulnerability
+   lock); (b) any **category dismissed ≥2×** (back-off); (c) any **product recommended within the last
+   30 days** (the sliding cooldown — re-spam prevention, §10).
+3. **Decide:** nothing eligible at all → **escalate** (or, severe stress with *only* unsecured debt
+   left → escalate for human judgement — the **Suresh** case); everything eligible was ethically held
+   back → **wait**; everything was on cooldown / dismissed → **wait**; otherwise → **act** with the
+   safe set. Confidence is *derived* from how far the driving score sits past its threshold.
 
-1. **route** (code) — writes the chosen product + shortlist.
-2. **hypothesise** (LLM) — writes a one-line "what life-moment is this?" note.
-3. **critique** (LLM) — given real evidence (the customer's **dismissal count** for this category +
-   their **stress score**), it answers `PROCEED` or `HOLD` with one line of why.
-4. **decide** (CODE — `guardrails.evaluate`) — writes the real verdict.
-5. **compose** (LLM) — writes the actual customer message.
+### The LLM step — pick + compose (one call)
 
-**The critique is causal, not decorative** (this is the part that makes it a real loop, not a
-straight pipeline):
-- If the critique says **HOLD**, the graph **loops back to hypothesise once** to re-reason (capped at
-  2 passes so it can't spin) — a genuine reflect-and-revise loop.
-- At `decide`, a HOLD can **veto an `act` down to `wait`** — but the LLM can *only* push toward
-  caution, **never** upgrade to act. The safety invariant ("code decides whether to act") still holds;
-  the LLM just gets a one-way brake.
+When the gate says ACT, `llm.select_and_compose` is handed the customer line, the vetted safe set
+(each product tagged with the moment that surfaced it), and the stress context, and returns strict
+JSON: the chosen `product_id`, a one-line internal reason, and the customer message. Code then
+**validates the pick is actually in the safe set** (else falls back to the top-ranked option) and
+computes the authority level from (signal + product). So the genuine LLM judgement is **relevance** —
+e.g. choosing a conservative FD over a higher-ranked investment for a risk-averse person — plus the
+vernacular wording. Everything binding is already settled before the LLM is asked anything.
 
-After `decide` there's the **second fork**:
-- verdict = **act** → run `compose` → end.
-- verdict = **wait / escalate** → skip `compose` → end (no message, no `action`).
+### What changed, and why it's more honest
 
-That skip is deliberate — no point composing a message APEX already decided not to send. So the flow
-is no longer a straight line: `route → hypothesise → critique → (loop back to hypothesise if HOLD) →
-decide → (compose if act) → END`.
+The Analyser used to run a `route → hypothesise → critique → decide → compose` LangGraph with two
+extra LLM "reasoning" nodes and a self-critique loop-back. In practice the critique was fed the *same
+two numbers* (stress, dismissal count) the code gate already decided on — so it couldn't add anything
+the gate didn't already guarantee. It was narration: a thought that changed nothing. Those nodes (and
+`graph.py`) were removed. The result is leaner, **cheaper** (wait/escalate cases now make *zero* LLM
+calls), and the description is finally exactly true: **code makes every decision and enforces every
+ethic; the LLM picks the most fitting option and says it well.** Even if the LLM hallucinates or is
+prompt-injected, the worst it can do is pick a different *already-vetted* product or write worse copy
+— it cannot act when code said hold, reach an unsafe option, or skip an ethical rule.
 
-### Why the self-critique is causal — before vs now
+**The dismissal-memory worked example — Ravi**, idle cash, has brushed off two investment nudges:
+the loop reads `investments: 2` from the outcome log, so `decide_customer` strips investment products
+from his safe set (back-off). If that leaves other eligible options (a deposit sweep, say) the LLM
+picks one of *those*; if it empties the set, the outcome is **wait**. Either way Ravi is not nagged
+about investing a third time — enforced in code, not hoped for in a prompt.
 
-"Self-critique" is easy to fake, so it's worth being precise about what changed.
+### The ethical gate, in plain words (`guardrails.decide_customer`)
 
-**Before:** the critique step ran, but (1) it was handed almost nothing — just the customer's basic
-profile, the signal, and the product — so it *couldn't* reason about history or stress even if it
-wanted to; and (2) whatever it "said" was saved to the log for humans to read, then **ignored** by
-`decide`. It was narration — it described a thought that changed nothing. If asked "what does your
-self-critique actually do?", the honest answer was "nothing."
+Because the gate now reasons over a customer's **whole signal set at once**, the ethics are enforced
+*structurally* rather than patched per-signal. The rules, checked top-to-bottom (first match wins):
 
-**Now:** three changes make it real.
-1. We compute a **dismissal memory** per customer — how many times they've rejected each category,
-   read from the `DECISIONS→ACTIONS→OUTCOMES` log (in `loop.py`).
-2. That memory (plus their stress score) is **fed into the critique**, which must begin its reply
-   with `PROCEED` or `HOLD`.
-3. A `HOLD` has teeth: it **loops the graph back** to re-reason once, and at `decide` it can
-   **downgrade an `act` to `wait`**.
-
-**Worked example — Ravi**, idle cash → APEX wants to suggest investing, but he's already brushed off
-two investment nudges:
-- *Before:* `decide` checks "eligible? unheld? → yes" → **act** → Ravi gets nagged a third time.
-- *Now:* the dismissal memory says `investments: 2` → the gate backs off to **wait**, and the
-  critique (told "dismissed twice") says `HOLD`, reinforcing it → Ravi is **not** nagged again.
-
-**The one-way brake (the safety invariant).** The critique can only ever make APEX *more* cautious —
-a `HOLD` turns `act → wait`. It can **never** do the reverse (`wait → act`), pick a product, or skip
-an ethical rule. So even if the LLM hallucinates or is prompt-injected, the worst it can do is make
-APEX *not act*. Being more cautious can't violate an ethic.
-
-**So do the ethics live in the LLM?** No. Every binding decision — act/wait/escalate, which product,
-eligibility, and all the ethical rules — is deterministic code in `guardrails.py`. The LLM proposes
-wording and can pull the *caution* lever; code disposes.
-
-### The ethical gate, in plain words (`guardrails.evaluate`)
-
-A list of rules checked top-to-bottom; the first that matches wins:
-
-- **Medical / `life_event` → always wait.** Never sell into a medical shock.
-- **Holistic vulnerability restraint.** Signals are processed one at a time, and a customer can have
-  several at once — which created a hole: **Anjali** had *both* a `life_event` (medical) and a
-  `protection_gap` (no insurance). The medical signal correctly waited, but the protection-gap signal
-  independently said "offer insurance" — pushing insurance at the exact person mid-crisis. The fix:
-  the gate now sees the customer's **whole set of active signals** (`ctx.active_signals`), so if *any*
-  vulnerability is active it holds back insurance **regardless of which signal it's processing**. The
-  restraint follows the *customer*, not the trigger.
-- **Severe stress counts as vulnerable too**, and the hold-back also covers **unsecured debt**
-  (personal loans, credit cards) — but **not secured lending** (loan-against-FD, home, gold), which is
+- **Medical / `life_event` → whole-customer wait.** A recent medical shock silences *all* outreach,
+  not just the medical-related one — APEX acknowledges and holds back entirely, then `reengage.py`
+  follows up gently once the acute moment has passed. This is stronger than the old per-signal gate,
+  which would still have sent, say, a cheery savings nudge the day after surgery.
+- **Holistic vulnerability restraint, by construction.** Reasoning per customer closes a hole the old
+  per-signal loop had: **Anjali** has *both* a `life_event` and a `protection_gap` — the old loop
+  processed them separately, so the protection-gap pass would offer insurance mid-crisis. Now the
+  vulnerability lock is applied while *building the one safe set*, so insurance simply never enters it.
+  The restraint follows the **customer**, not the trigger.
+- **Severe stress counts as vulnerable too**, and the lock also covers **unsecured debt** (personal
+  loans, credit cards) — but **not secured lending** (loan-against-FD, home, gold), which is
   collateralised and often genuinely helpful.
-  - *Standout — Suresh vs Lakshmi, both severely stressed:* Suresh's only option is an unsecured
-    personal loan → **escalate to a human** (don't auto-push debt); Lakshmi holds an FD → offered a
-    **loan against it** (secured, safe) → **act**. Same stress, opposite outcome — decided by whether
-    the available help is safe or risky.
-- **Already holds it → wait. Dismissed this category twice → wait** (back off). **Nothing eligible →
-  escalate.**
+  - *Standout — Suresh vs Lakshmi, both severely stressed:* Suresh's only eligible option is an
+    unsecured personal loan → it's stripped, the safe set empties → **escalate to a human** (don't
+    auto-push debt); Lakshmi's idle-balance / FD routes to safe savings → **act**. Same stress,
+    opposite outcome — decided by whether the available help is safe or risky.
+- **Already holds it → never enters the safe set. Category dismissed ≥2× → stripped (back-off).
+  Recommended within 30 days → stripped (cooldown).** If those filters empty the set → **wait**; if
+  the customer qualifies for nothing at all → **escalate**.
 
 ### Side-effect helper
 
@@ -433,10 +421,13 @@ A `wait` isn't the end of the story; it's a deliberate pause (APEX_README §6: *
 and wait → offer insight without a product → let the customer pull it forward*). `reengage.py` is the
 scheduled second look that makes that real instead of conceptual.
 
-It finds `wait` decisions older than `--days` (default **3**; the demo uses `--days 0` so you don't
-have to wait, the same "run it now for pacing" choice the demo mechanic makes), skips any wait that
-was already followed up (each follow-up is tagged `trigger_ref="reengage:<original_decision_id>"`, so
-a wait is re-engaged **at most once**), and for each remaining wait makes **one** call:
+It finds **vulnerability** `wait` decisions older than `--days` (default **3**; the demo uses
+`--days 0` so you don't have to wait, the same "run it now for pacing" choice the demo mechanic
+makes). It deliberately revisits *only* `life_event` waits (`trigger_ref` begins `life_event:`) —
+never the gate's other holds (a cooldown/over-contact wait, or an insurance-only restraint), which
+must **not** receive a "we noticed a sensitive moment" check-in. It skips any wait already followed up
+(each follow-up is tagged `trigger_ref="reengage:<original_decision_id>"`, so a wait is re-engaged
+**at most once**), and for each remaining wait makes **one** call:
 
 - **Still acutely vulnerable?** If the customer is in *severe ongoing financial stress* (stress ≥ the
   same `SEVERE_STRESS` the gate uses), it **keeps waiting** — APEX never follows up *during* the hard
@@ -470,17 +461,36 @@ chat. The cleanest way to see all three at once is to ask: **how does the LLM ge
 
 | Mode | Data source | Control flow |
 |---|---|---|
-| **Guide** | injected up front (no DB) | one call |
+| **Guide** | fetched on demand via tools (catalogue, docs, application lookup) | a loop |
 | **Concierge** | fetched on demand via tools | a loop |
 | **Analyser** | gathered by `loop.py`, gated by code | fixed line |
 
-### Guide — context injection (`guide.py`)
+### Guide — a tool-calling agent (`guide.py`)
 
-For brand-new / prospective customers — APEX has **zero** data on them yet. Since it can't look
-anything *up*, it gets everything *handed to it up front*: `build_guide_context` pulls the catalogue
-and groups it by **life-need** (Save / Grow / Borrow / Protect / Pay), then stuffs that into the
-system prompt. So the model walks in already "knowing" the landscape. **One Groq call, no graph, no
-gate** — the file is plain because there's nothing to fetch or decide.
+For brand-new / prospective customers — APEX has **zero** banking data on them. Earlier this was a
+single context-injection call (the catalogue stuffed into the prompt), but two things a one-shot
+prompt can't do *safely* pushed it to the same **tool-calling** shape as Concierge:
+
+- **`get_required_documents`** — the real KYC/doc list per product, grounded in code (a small
+  `category → standard documents` map), never recited from the model's memory.
+- **`lookup_application`** — the **agentic core**: whether this person has an *unfinished* application
+  (and which step they stopped at) is *live* state in the `applications` table — the one thing
+  injection structurally cannot know. This is the Tier-2 **drop-off** path.
+
+Plus `list_products` (the catalogue grouped by life-need: Save / Grow / Borrow / Protect / Pay) and
+`get_product_details`. The LLM decides which to call, in the same `agent ⇄ tools` loop Concierge uses.
+
+**How it knows you're a drop-off:** it doesn't *guess* — detection is the backend's job (the
+`application_dropoff` signal over the `applications` table). Guide only **confirms context** for an
+*identified* person: the signed-in `customer_id` (the demo's "sign in as" identity, passed through
+`/chat`) or a reference the customer volunteers in chat. An anonymous visitor is always a **Tier-1
+stranger** — Guide can't, and shouldn't, recognise them.
+
+**The floor (what code guarantees):** Guide **never invents a URL** — it only ever surfaces a
+product's real `landing_url` from the catalogue; documents come from data; and it **never writes to
+SBI** (no form submission). Deep links / pre-filled onboarding URLs are deliberately *not* built —
+that pre-fill mechanism doesn't work against SBI's real pages, so Tier-2 is an honest **reminder +
+document help + a plain link to the official page**, not a magic resume-to-the-step.
 
 Behavioral rules baked into the prompt: ask what they need *first*; mirror their language; never
 dump a product list (surface one or two *adjacent* areas as life-outcomes — "a low-cost way to
@@ -500,7 +510,8 @@ guess a number — if a tool gives it to you, use it.* So "can I afford a ₹80k
 **`recommend_product` — "code disposes" applied to Concierge too.** Early on, Concierge *freelanced*
 product suggestions (it once recommended a product the customer already held). Now, when the customer
 asks "what should I get?", the LLM calls `recommend_product`, which runs the **same
-`routing` + `eligibility` + `guardrails` gate the Analyser uses** over the customer's live signals and
+`routing` + `eligibility` + ethical `guardrails` the Analyser is built on** (via the per-signal
+`guardrails.evaluate`) over the customer's live signals and
 returns only vetted products — eligible, not already held, and ethically cleared (a customer in a
 vulnerable moment gets no insurance push). The LLM phrases the answer; **code decides the product** —
 so Concierge can no longer suggest something ineligible, held, or inappropriate.
@@ -524,7 +535,7 @@ One turn: the **agent** node either answers or emits tool calls; a fork checks *
 tools?* — **yes** → the **tools** node runs them, appends the results, loops back to agent; **no** →
 it's the final answer → end. The number of loops isn't fixed: the LLM can fetch balance, realise it
 also needs spending, fetch again, then answer. *That* unpredictable, LLM-decided path is exactly what
-a graph is for — unlike the Analyser's knowable straight line. To stop a runaway loop, after
+a graph is for — unlike the Analyser, whose path is fully knowable, so it needs no graph at all. To stop a runaway loop, after
 `MAX_TOOL_ROUNDS` (4) the agent is forced to answer (tools switched off), and a `GraphRecursionError`
 is caught and turned into a graceful "couldn't work that out" reply rather than a crash.
 
@@ -533,8 +544,8 @@ Voice doesn't change the brain. Speech in → Groq Whisper transcribes (`voice.p
 runs → the browser speaks the answer back. Same logic, different input/output. Returns "" on failure.
 
 ### How they differ from the Analyser
-- **Analyser** is proactive → needs the strict graph + the ethical code-gate (never push on a
-  vulnerable moment).
+- **Analyser** is proactive → a strict deterministic code-gate decides act/wait/escalate and the safe
+  set; the LLM only picks within it + composes (never push on a vulnerable moment).
 - **Guide / Concierge** are reactive → free-form chat, no act/wait/escalate gate on the *reply* (the
   customer is steering). The behavioral rules still apply via the system prompt.
 
@@ -585,10 +596,11 @@ Walk it with **Priya** (idle balance) and **Anjali** (medical event):
    anomaly scorer.
 2. **Signals** (cheap gate): Priya → `idle_balance`; Anjali → `life_event`. Only these two wake the
    agent; everyone else with nothing going on is never reasoned about.
-3. **The agent** (per signal): route → hypothesise (LLM) → critique (LLM) → **decide (code)** →
-   compose (LLM, only if act).
-   - Priya → **act** → a calm savings nudge.
-   - Anjali → **wait** → the gate forces restraint; `compose` is skipped; **no message written**.
+3. **The agent** (per customer): **`decide_customer` (code)** builds the safe set and rules
+   act/wait/escalate → if act, the LLM picks the best fit from that set + composes (one call).
+   - Priya → **act** → a calm savings nudge (the LLM picks from her vetted savings/growth options).
+   - Anjali → **wait** → the gate holds *all* outreach (active `life_event`); the LLM is never called;
+     **no message written**.
 4. **Record & deliver**: a `decision` is saved either way (the audit trail). Priya gets an `action`
    + a real email; Anjali gets a decision on record showing APEX *noticed and held back*.
 5. **Re-engage / escalate (the non-act tails close too)**: days later, `reengage.py` revisits Anjali's
@@ -630,8 +642,8 @@ happy-path sale.
    `run_agent(customer_id=…)`. The data is seeded, but the scoring/detection/reasoning is the genuine
    pipeline — just on demand instead of nightly.
 4. **Return the outreach** — only the *result* (`outcome`, `product_id`, `message_text`,
-   `deep_link`), not the internal hypothesis/critique trace. The **customer site** shows what APEX
-   would say; the **ops dashboard** holds the raw reasoning.
+   `deep_link`), not the internal reasoning trace (the pick reason + the `[gate]` reason). The
+   **customer site** shows what APEX would say; the **ops dashboard** holds the raw reasoning.
 
 **Honest shortcut:** the *only* thing faked is the moment data starts existing — the seam where, in
 production, SBI's systems would notify APEX that an account went live. Everything after is the real
@@ -656,18 +668,25 @@ Captured responses show on the ops customer-detail view.
 
 **Using the outcomes — two ways the "memory" is now causal:**
 
-1. **Signal-level suppression (incremental mode).** With `--incremental` (or
-   `/pipeline/agent?reset=false`), the loop keeps decision history and **skips a signal if the
-   customer already dismissed/adopted it, or was contacted within a 30-day cooldown** — keyed by
-   customer + signal type (the decision's `trigger_ref` is stored as `"signal_type:id"` so it's
-   self-describing). Default stays full-reset so demos stay repeatable.
+1. **Product-level cooldown (re-spam suppression).** When the loop builds a customer's safe set, it
+   **strips any product recommended within the last 30 days** — a per-(customer, product) *sliding*
+   window read straight from the `DECISIONS→ACTIONS` log (no separate "history" table). A sliding
+   window beats a "clear the list every 30 days" scheme: it has no boundary, so a product recommended
+   on day 29 can't be re-sent on day 31. Because a full reset wipes that history, the cooldown is
+   simply empty in demo (`reset=true`) mode and active in incremental (`/pipeline/agent?reset=false`)
+   mode — same code, no special-casing. Adopted products drop out permanently (the held-filter); the
+   decision's `trigger_ref` stays self-describing (`"signal_type:id"`).
 2. **Category-level back-off (every run).** `loop.py` computes a per-category **dismissal count**
-   from `DECISIONS→ACTIONS→OUTCOMES` and puts it in the agent context. This feeds two places: the
-   **gate** backs an `act` down to `wait` once a category has been dismissed ≥2× (`guardrails.py`),
-   and the **self-critique** is told the count as evidence so it can reason about whether a third
-   nudge is warranted. This *is* the "dismissal-count memory" the design doc describes (what
-   `get_interaction_history` was meant to provide) — built as deterministic context, not a named
-   LLM tool.
+   from `DECISIONS→ACTIONS→OUTCOMES` and puts it in the agent context. The **gate** then strips any
+   category the customer has dismissed ≥2× while building the safe set (`guardrails.decide_customer`),
+   so a category they keep rejecting simply never gets offered again. This *is* the "dismissal-count
+   memory" the design doc describes (what `get_interaction_history` was meant to provide) — built as
+   deterministic context, not a named LLM tool.
+
+Both layers are the *same idea* — don't repeat yourself at someone — applied at two grains: cooldown
+paces the *same product*, back-off retires a *dismissed category*. Together they also sequence a
+customer's multiple needs over time: one outreach now, the rest deferred to later runs, never all at
+once.
 
 Still remaining: **retraining propensity** on the real outcomes (replacing the cold-start prior)
 once enough responses accumulate; and making the dismissal count **recency-weighted** (today it's a
@@ -761,7 +780,7 @@ A single consolidated comparison, pulling together every demo/production distinc
 | **ML scoring (stress, dormancy, anomaly)** | Real computation, run on synthetic data — the actual model logic, not faked | Identical models, run on real data |
 | **Propensity model** | Simulated/hand-assigned scores — no real customer responses exist yet to train on | Would need real accumulated outcomes before training is meaningful; even in production this starts thin |
 | **Signal detection** | Real rule logic, running against synthetic data | Identical — same rules, real data |
-| **Agentic loop (Investigate → Hypothesise → Critique → Decide)** | Fully real — actual LangGraph orchestration, actual tool calls, actual LLM reasoning | Identical — this never changes between demo and production |
+| **Analyser decision loop (per-customer code gate → LLM pick + compose)** | Fully real — deterministic act/wait/escalate + safe-set ethics, then a genuine LLM relevance pick + vernacular message | Identical — this never changes between demo and production |
 | **Authority levels 1–3** | Fully real — insight, one-tap deep link, standing-rule detection all genuinely work | Identical |
 | **Authority level 4 (autonomous + undo window)** | Not built — explicitly future-state | Requires SBI to grant scoped write access; doesn't exist yet in either |
 | **Execution (deep links)** | Real link construction; clicking through to SBI's actual site is possible but not the focus of the demo | Identical mechanism, real SBI pages |

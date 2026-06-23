@@ -149,17 +149,18 @@ The gap isn't discovery or UX. It's **behavioral**:
 
 **Rejected: signal → one LLM call → output. (That's inference with a trigger, not an agent.)**
 
-**Adopted: a reasoning loop — Investigate → Hypothesise → Self-critique → Decide.**
+**Adopted: a deterministic decision gate + a constrained LLM step.** Code decides *whether, when, and what*; the LLM only picks the best fit from a pre-vetted set and writes the message.
 
-- The mechanical step (match propensity against eligibility) *is* a rule — and we keep it a rule.
-- The agent earns its place in the parts a rule **structurally cannot do**:
-  1. **Timing judgment** — how long to wait after a vulnerability signal, what to say during the wait.
+- The mechanical step (match candidates against eligibility) *is* a rule — and we keep it a rule.
+- What a rule alone **structurally cannot do**, and where the system earns its keep:
+  1. **Timing judgment** — code holds *all* outreach during a vulnerable moment (`life_event`), then a scheduled pass re-engages gently once it has passed.
   2. **Output is language, not a row** — outcome-framed, jargon-free, in the customer's language.
-  3. **Self-critique catches the technically-correct-but-wrong case** — a high insurance propensity that exists *because* of a recent medical expense should not be acted on, even though it scores well.
+  3. **Relevance judgment** — among several *eligible* products, the LLM picks the one that fits this specific person (a conservative deposit for a risk-averse saver over a higher-ranked investment).
+- **The technically-correct-but-wrong case is caught in *code*, not hoped for in a prompt:** a high insurance propensity that exists *because* of a recent medical expense is blocked by the deterministic vulnerability lock — guaranteed, every time.
 
-**The hybrid principle: "LLM proposes, code disposes."** The LLM reasons and writes; deterministic code makes the act/wait/escalate decision and enforces the ethics.
+**The hybrid principle: "code disposes, the LLM proposes."** Code makes the act/wait/escalate decision and fixes the set of allowed products; the LLM proposes the relevance pick and the wording — it can never reach an unsafe option, raise the authority level, or act when code said hold.
 
-**Speaker notes:** If a judge says "this could just be rules" — agree about the *matching* step, then pivot: "What can't be a rule is the judgment about timing, tone, and whether a technically-correct recommendation is actually appropriate right now. That's the self-critique step."
+**Speaker notes:** If a judge says "this could just be rules" — agree about the *decision*: it **is** deterministic, on purpose, because proactive financial outreach must be guaranteed, not probabilistic. Then pivot: "What rules can't do is read this specific person, choose the most fitting of several eligible options, and say it well in their language — that's the LLM, bounded by a code gate that guarantees the ethics."
 
 ---
 
@@ -177,8 +178,8 @@ The gap isn't discovery or UX. It's **behavioral**:
  ┌─ Layer 1  DATA SUBSTRATE ........ SBI's CBS (read-only) + product catalogue        [what exists]
  ├─ Layer 2  ML SCORING ............ stress · propensity · churn · anomaly (+sim,conf) [interpretation]
  ├─ Layer 3  SIGNAL DETECTION ...... cheap rule/threshold gate — who's worth waking    [the gate]
- ├─ Layer 4  THE AGENTIC LOOP ...... Investigate → Hypothesise → Critique → Decide      [judgment]
- ├─ Layer 5  THREE MODES ........... Guide / Analyser / Concierge (one loop, 3 entries) [context]
+ ├─ Layer 4  THE DECISION GATE ..... per-customer code gate (act/wait/escalate + safe set) → LLM pick+compose [judgment]
+ ├─ Layer 5  THREE MODES ........... Guide / Analyser / Concierge (shared data + ethics)  [context]
  ├─ Layer 6  EXECUTION BOUNDARY .... deep link · standing rule · pure info — never CBS  [the wrapper]
  └─ Layer 7  POST-DECISION FLOW .... generate → validate → deliver → log → outcome      [closing the loop]
 ```
@@ -239,29 +240,29 @@ The gap isn't discovery or UX. It's **behavioral**:
 
 ---
 
-## Slide 15 — Layer 4: The Agentic Loop (judgment) · PRIORITY
+## Slide 15 — Layer 4: The Decision Gate (judgment) · PRIORITY
 
-**Investigate → Hypothesise → Self-critique → Decide. A failed critique loops back, not forward.**
+**Per customer, code decides — then the LLM picks the best fit and writes it.**
 
-- **Investigate** — gathers the customer's profile, transactions, scores, eligibility, their **dismissal-count "memory"** (per-category, from the outcome log), and their full set of **active signals**.
-- **Hypothesise** — forms a candidate action by matching propensity against eligibility. *The one mechanical step a plain rule could do.*
-- **Self-critique** — and this is *causal*, not decorative: it's handed real evidence (the dismissal count for this category + the stress score) and answers `PROCEED` or `HOLD`. A **HOLD loops the graph back to re-reason once**, and at Decide it can **veto an `act` down to `wait`** — but it can *only* push toward caution, never upgrade to act.
-- **Decide** — resolves to **act**, **wait**, or **escalate** — deterministic, tied to a confidence threshold and the dismissal/vulnerability rules. **None of the three is a dead end:** `act` delivers, `wait` is revisited later by the re-engagement pass (Slide 5), and `escalate` lands in a **human-RM queue** (a real inbox on the ops dashboard) — for `churn_risk`, severe-stress-with-only-unsecured-debt, and "nothing eligible."
+- **Gather** — for one customer, *all at once*: profile, transactions, scores, eligibility, their **dismissal-count "memory"** (per-category, from the outcome log), their **recently-recommended products** (cooldown), and their **full set of active signals**.
+- **Decide (deterministic code — `decide_customer`)** — resolves to **act / wait / escalate** and builds the **safe set**: eligible, unheld products, minus vulnerability-locked categories (insurance / unsecured debt in a vulnerable moment), minus dismissed categories, minus anything on cooldown. Bright-line ethics live here — e.g. an active `life_event` holds *all* outreach for that customer.
+- **Pick + compose (LLM, only on `act`)** — from the vetted safe set the LLM chooses the single best fit for *this* person and writes the outcome-framed, jargon-free, in-language message. Code validates the pick is in the set; it can't reach anything else.
+- **None of the three outcomes is a dead end:** `act` delivers, `wait` is revisited later by the re-engagement pass (Slide 5), and `escalate` lands in a **human-RM queue** (a real inbox on the ops dashboard) — for `churn_risk`, severe-stress-with-only-unsecured-debt, and "nothing eligible."
 
-**"LLM proposes, code disposes."** Decide is **deterministic code**, not the LLM — that's what makes the ethical guarantees trustworthy. The LLM reasons and writes the message, and can raise a one-way *caution* brake; it never makes the act-ward call. **Every step is logged**, so the reasoning trace *is* the audit log.
+**"Code disposes, the LLM proposes."** The decision and every ethic are deterministic code, not the LLM — that's what makes the guarantees trustworthy. The LLM exercises only *relevance* (which eligible product fits this person) and *language*. Even if it were prompt-injected, the worst it could do is pick a different *already-vetted* product or write weaker copy. **Every step is logged**, so the reasoning trace *is* the audit log.
 
-**Speaker notes:** Orchestrated as a graph: route (deterministic product pick) → hypothesise (LLM) → critique (LLM, with evidence) → [loop back to hypothesise once if HOLD] → decide (code gate) → compose (LLM, only if "act"). The critique genuinely affects the outcome (loop-back + caution-veto), but the act/wait/escalate authority stays in code.
+**Speaker notes:** We deliberately removed an earlier hypothesise→self-critique LLM loop — the critique was fed the same two numbers (stress, dismissal count) the code gate already decided on, so it added cost and an illusion of "agentic-ness," nothing more. The honest, leaner design (code makes every decision; the LLM picks relevance and phrases) is cheaper — *zero* LLM calls on wait/escalate — and more defensible. If asked "where's the AI judgment, then?": choosing the most fitting of several eligible products for a real person, in their language, bounded by a gate that guarantees the ethics.
 
 ---
 
-## Slide 16 — Layer 5: Three Modes, One Loop (context)
+## Slide 16 — Layer 5: Three Modes, One Core (context)
 
-**It's not three agents. It's one Investigate→Hypothesise→Critique→Decide core, entered three ways — what changes is the *trigger* and the *starting context*, not the machinery.**
+**It's not three agents. The three modes share one **data substrate + product/eligibility logic + ethical guardrail** — what changes is the *trigger*, the *starting context*, and the *technique* best suited to each.**
 
-| Mode | Trigger | What Investigate pulls | Technique | Channel |
+| Mode | Trigger | What it pulls | Technique | Channel |
 |---|---|---|---|---|
-| **Guide** | Absence of data | The conversation itself (no `customer_id`/history yet) | Context-injection (catalogue in the prompt) | APEX website |
-| **Analyser** | A batch-computed signal | The full tool set — real customer, real history | The graph + code gate | Email (proto) / WhatsApp-SMS (prod) |
+| **Guide** | Absence of data | Catalogue, real document lists, and live application-lookup — via tools | Tool-calling agent (grounded onboarding; spots drop-offs) | APEX website |
+| **Analyser** | A batch-computed signal | The whole customer — real data + history, all signals at once | Per-customer code gate + LLM relevance pick | Email (proto) / WhatsApp-SMS (prod) |
 | **Concierge** | The customer asks | Scoped to the question ("can I afford this?" → balance + stress only) | Tool-calling agent (computes real answers) | APEX website |
 
 **Concierge "code disposes" too.** When a customer asks "what should I get?", Concierge doesn't freelance — it calls a `recommend_product` tool that runs the **same routing + eligibility + guardrail gate as the Analyser** and returns only vetted products (eligible, not already held, ethically cleared). The LLM phrases; code decides the product — the same principle, applied to all modes.
@@ -327,7 +328,7 @@ Layer 2: score everyone   →  Layer 3: detect signals  →  Layer 4: decide (co
 ## Slide 20 — Scalability: The Six Concrete Levers
 
 1. **Batch scoring is embarrassingly parallel** — Layer 2 is tabular model inference on a feature store; the same nightly workload banks already run for fraud/risk. Distribute (Spark/batch), partition the base. No novel risk.
-2. **The LLM is off the critical path of the *decision*** — Layer 3 detection and the Layer 4 gate are deterministic and run cheaply on *every* signal. The LLM only adds hypothesis framing, critique, and message wording — so it runs only on the small "act" subset. Decisions scale with signals; *generation* scales with the much smaller acted set.
+2. **The LLM is off the critical path of the *decision*** — Layer 3 detection and the Layer 4 gate are deterministic and run cheaply on *every* customer. The LLM only does the relevance pick + message wording — one call, and *only* on the small "act" subset (wait/escalate make zero LLM calls). Decisions scale with customers; *generation* scales with the much smaller acted set.
 3. **Prioritisation when signals exceed capacity** — rank by `confidence × propensity × business value`; process top-N; let the rest **expire** via the signal `status` lifecycle (Layer 3). A 30-day cooldown prevents nagging.
 4. **Concierge scales with active users, not the base** — it's user-initiated; standard stateless-API + LLM chatbot scaling (horizontal workers, on-demand scoring for that one customer). Never touches the 500M.
 5. **MLOps closes the loop** — the `OUTCOMES` log becomes training data: propensity graduates from a cold-start prior to a model retrained on real responses, with drift monitoring + a model registry.
@@ -354,7 +355,7 @@ Layer 2: score everyone   →  Layer 3: detect signals  →  Layer 4: decide (co
 **The system improves by reading its own audit log — not (yet) by retraining on thin data.**
 
 - Every outreach and its outcome (clicked / dismissed / ignored / completed) is logged (Layer 7).
-- A **per-category dismissal count** (read from that log) is **causal in two places**: the deterministic gate backs an `act` down to `wait` once a category has been dismissed ≥2×, and the self-critique is given the count as evidence — *"this customer has dismissed two investment nudges; is a third warranted?"* Visible and explainable, not a silent score adjustment. (Today it's a flat count; recency-weighting is a planned refinement.)
+- A **per-category dismissal count** (read from that log) is **causal**: the deterministic gate strips any category a customer has dismissed ≥2× from their safe set, so it's simply never offered again — *"this customer has dismissed two investment nudges; stop offering investments."* Alongside it, a **30-day product cooldown** (also read from the log) holds back any product recommended recently. Both are visible and explainable, not silent score adjustments. (Today the count is flat; recency-weighting is a planned refinement.)
 - **At production scale**, accumulated real outcomes become the training set: the propensity model graduates from cold-start prior to a genuinely trained predictor — with MLOps (retraining cadence, drift detection, A/B, model registry).
 
 **Speaker notes:** The honest nuance, worth stating: full retraining needs *enough* real outcomes to be meaningful. The dismissal-count mechanism is the answer that works from day one (and it's already causal — it changes decisions); retraining is the answer once volume accumulates. Don't over-claim retraining on launch.
@@ -389,7 +390,7 @@ Layer 2: score everyone   →  Layer 3: detect signals  →  Layer 4: decide (co
 
 **"One agent" = one reasoning core, three trigger-gated modes — not mode-blindness.**
 
-- What differs between modes is the **trigger and starting context** (Layer 5), not the reasoning machinery. Guide investigates onboarding context; Analyser investigates transaction history — but both Investigate → Hypothesise → Self-critique with the same ethical guardrail.
+- What differs between modes is the **trigger, starting context, and technique** (Layer 5); what's shared is the **data substrate, the product/eligibility logic, and the ethical guardrail**. Guide works from onboarding context; Analyser works from transaction history — but a vulnerable customer is shielded the same way in both, because the restraint lives in shared code, not per-mode prompts.
 - Three separate agents would duplicate the loop (and the guardrail logic) three times, for no gain in capability — just more code to keep consistent.
 - Where multi-agent genuinely helps (a privileged "acts" agent separated from a "decides" agent) **APEX already has that separation** — structurally, via the read-only wrapper (Layer 6), not via a second agent.
 
@@ -553,7 +554,7 @@ Then: open the **ops dashboard** to show the reasoning trace; click the **email 
 ## Appendix — Q&A Rapid-Fire (keep in back pocket)
 
 - **"Isn't this just a chatbot?"** → No — Analyser is *proactive* and *signal-gated*; the chatbot (Concierge) is one of three modes, and even it computes real answers via tools, never guesses.
-- **"Could this be all rules?"** → The product-match step is a rule, and we keep it one. Timing, tone, and "is a technically-correct recommendation actually appropriate right now" can't be — that's the self-critique step (Slide 15).
+- **"Could this be all rules?"** → The decision *is* all rules — deliberately, because proactive financial outreach must be guaranteed, not probabilistic. What rules can't do is read this specific person, pick the most fitting of several *eligible* options, and say it well in their language — that's the LLM, bounded by the code gate (Slide 15).
 - **"How do you handle 50 crore customers?"** → The cost funnel (Slide 19): the expensive LLM only runs on the tiny acted subset; scoring/detection/decision are cheap and batchable.
 - **"What about privacy / a creepy-AI backlash?"** → The ethical guardrail (Slide 5): never push on a vulnerability signal; wait, offer insight, let the customer pull the product forward. Enforced in code.
 - **"So a `wait` just stalls forever?"** → No — a scheduled re-engagement pass revisits it once the acute moment has passed and sends a *single, product-free* check-in (never naming what it detected); if the customer is still in severe stress it keeps waiting. The wait resolves, on the customer's timeline, not the bank's. (Slide 5.)
@@ -562,6 +563,6 @@ Then: open the **ops dashboard** to show the reasoning trace; click the **email 
 - **"Why not three agents for three pillars?"** → One reasoning core is more elegant and easier to keep ethically consistent; the wrapper already provides the decide/execute separation people use multi-agent for. (Slide 25.)
 - **"Why email and not WhatsApp?"** → Cost only — WhatsApp/SMS need paid telecom with no free tier. The reasoning and content are identical; only the delivery channel differs.
 - **"Where does ML stop and rules begin?"** → ML for multi-signal, baseline-relative patterns (stress, propensity, decay, anomaly); rules for clean thresholds (dormancy, idle balance, manual-recurring). We don't use ML where a rule is honest and cheaper. (Slides 13–14.)
-- **"Does the self-critique actually change anything, or is it theatre?"** → It's causal: it's fed the dismissal count + stress score, a HOLD loops the graph back to re-reason, and it can veto an `act` down to `wait`. But it's a *one-way caution brake* — it can never upgrade to act, so the act/wait/escalate authority stays in deterministic code. (Slide 15.)
+- **"Where exactly is the LLM, and where is the code?"** → Code decides act/wait/escalate and builds the safe set (eligibility + every ethical rule). The LLM runs only on an `act`, and only to (a) pick the best-fit product from that already-vetted set and (b) write the message. We *had* a hypothesise→self-critique LLM loop and removed it — it was fed the same numbers the code gate already decided on, so it added cost and an illusion of reasoning, nothing causal. The leaner design is cheaper and more honest. (Slide 15.)
 - **"Can Concierge recommend something silly?"** → No longer — it calls `recommend_product`, which runs the same routing + eligibility + guardrail gate the Analyser uses, so it can't suggest something ineligible, already held, or inappropriate. The LLM phrases; code decides the product. (Slide 16.)
 - **"Isn't mining conversations for intent creepy?"** → It's the opposite of creepy *when done right*: an explicit, customer-voiced "I want to invest" is the customer pulling the product forward — the ideal. The guardrail is that a *disclosed vulnerability* (job loss, medical crisis) creates nothing and withdraws pending intents — we never turn distress into a sales trigger. Same ethical line, applied to conversation. (Slides 14, 16.)

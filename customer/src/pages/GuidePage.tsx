@@ -1,10 +1,14 @@
 import { useState } from 'react'
 import ChatPanel from '../components/ChatPanel'
+import { CUSTOMER_KEY } from '../api'
 
 const LANGS: Record<string, string> = { en: 'English', hi: 'Hindi', ta: 'Tamil', te: 'Telugu', bn: 'Bengali' }
 
 export default function GuidePage() {
   const [lang, setLang] = useState('en')
+  // If someone is signed in (demo identity), pass it so Guide can spot an unfinished application
+  // (the Tier-2 drop-off path). Anonymous visitors get plain Tier-1 onboarding.
+  const customerId = localStorage.getItem(CUSTOMER_KEY) ?? undefined
 
   return (
     <div>
@@ -25,6 +29,7 @@ export default function GuidePage() {
       </div>
       <ChatPanel
         mode="guide"
+        customerId={customerId}
         lang={lang}
         intro="Hi, I'm APEX. I can help you open the right SBI account and tell you what documents you'll need. What are you looking to do?"
       />

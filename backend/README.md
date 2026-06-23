@@ -43,7 +43,7 @@ python -m apex.signals.validate                 # checks detected vs generated_m
 
 # 5. Run the Analyser-mode agentic loop (needs GROQ_API_KEY in .env)
 python -m apex.agent.loop                        # writes DECISIONS + ACTIONS (no email)
-python -m apex.agent.loop --limit 6              # process only the first 6 (saves LLM calls)
+python -m apex.agent.loop --limit 6              # process only the first 6 customers (saves LLM calls)
 python -m apex.agent.loop --limit 3 --send       # also deliver acted messages via Resend
 
 # 5b. Re-engage deliberate WAITs whose acute moment has passed (gentle, product-free insight)
@@ -68,7 +68,7 @@ uvicorn apex.api.app:app --reload --port 8000    # interactive docs at http://lo
 | POST | `/pipeline/reengage` | revisit WAIT decisions whose acute moment has passed → gentle product-free insight (`?days=0` revisits all now; `?send=true` to email) |
 | GET | `/escalations` | RM queue — escalate decisions awaiting a human (`?include_resolved=true` to include handled ones) |
 | POST | `/escalations/{decision_id}/resolve` | mark an escalation handled by the relationship manager |
-| POST | `/chat` | conversational reply — `{mode: guide\|concierge, customer_id?, messages[]}` (Groq, context-injected) |
+| POST | `/chat` | conversational reply — `{mode: guide\|concierge, customer_id?, messages[]}` (Groq tool-calling agents; `customer_id` lets Guide spot a drop-off) |
 | POST | `/voice/transcribe` | speech-to-text (multipart audio → text) via Groq Whisper |
 | GET | `/demo/scenarios` | list "simulate 3 months" scenarios |
 | POST | `/demo/simulate?scenario=` | seed one customer's 3 months + score/detect/reason → Guide→Analyser transition |
@@ -106,14 +106,13 @@ apex/
     detect.py            write SIGNALS         (python -m apex.signals.detect)
     validate.py          manifest harness      (python -m apex.signals.validate)
   agent/
-    routing.py           deterministic signal -> product routing + eligibility
-    guardrails.py        the code gate: confidence, ethical restraint, Decide + authority
-    graph.py             LangGraph flow: route -> hypothesise -> critique -> decide -> compose
-    prompts.py llm.py    Groq calls for the hypothesise / critique / compose nodes
+    routing.py           deterministic signal -> product candidates + eligibility (the vetted set)
+    guardrails.py        the per-customer code gate: decide_customer (act/wait/escalate + safe set), authority, confidence
+    prompts.py llm.py    Groq call for the single select-and-compose step (pick best fit + write message)
     mailer.py            real outbound email via Resend (routes to the demo sink)
     loop.py              Analyser loop -> DECISIONS + ACTIONS  (python -m apex.agent.loop)
     reengage.py          revisit WAITs after the acute moment passes -> gentle insight  (python -m apex.agent.reengage)
-    guide.py             Guide mode — onboarding chat (context injection)
+    guide.py             Guide mode — onboarding tool-calling agent (catalogue/docs/application-lookup tools)
     concierge.py         Concierge mode — LangGraph tool-calling agent (read-only per-customer tools)
     voice.py             Groq Whisper speech-to-text (used by both modes)
     mailer.py            real outbound email via Resend (routes to the demo sink)
@@ -130,21 +129,29 @@ apex/
   (`concierge.py`) — the LLM decides which read-only, per-customer tools to call (`get_balance`,
   `get_spending`, `check_affordability`, `get_holdings`, `list_products`) and answers with the
   *computed* figures, never guesses. "Can I afford this?", "how's my spending?".
-- **Guide** (`mode=guide`): onboarding for a new customer with no data — the full-depth
-  product catalogue (with links) is injected so it can recommend and hand off.
+- **Guide** (`mode=guide`, optional `customer_id`): onboarding for a new/prospective customer, also a
+  **LangGraph tool-calling agent** (`guide.py`) — read-only tools `list_products`,
+  `get_product_details`, `get_required_documents` (grounded KYC list), and `lookup_application` (the
+  Tier-2 **drop-off** context — live `applications` state, resolved from a signed-in `customer_id` or
+  a volunteered reference). It only ever surfaces a product's real `landing_url`; it never invents a
+  link, builds a (non-working) pre-filled deep link, or writes to SBI.
 - **Voice:** `/voice/transcribe` runs Groq Whisper (reuses `GROQ_API_KEY` — no extra key).
   Text-to-speech is done browser-side in the frontend. Both modes reply in the customer's
   language, jargon-free, per the behavioral philosophy.
 
 ## Notes on the agentic loop
 
-- **LangGraph flow, with a deterministic code gate.** The Analyser runs as a LangGraph
-  graph: `route → hypothesise (LLM) → critique (LLM) → decide (code) → compose (LLM, only
-  if act)`. The LLM *reasons and writes*, but the **`decide` node is `guardrails.evaluate`**
-  — the act/wait/escalate decision and the ethical restraint (e.g. `life_event` → *wait*)
-  are guaranteed in code, never left to the prompt. "LLM proposes, code disposes."
-- Product routing + eligibility (`routing.py`) and the gate (`guardrails.py`) stay fully
-  deterministic; only hypothesise/critique/compose are LLM calls.
+- **Per-customer, with a deterministic code gate.** The Analyser reasons over *all* of one
+  customer's active signals at once: `guardrails.decide_customer` settles act/wait/escalate and
+  builds the **safe set** (eligible · unheld · vulnerability-locked · dismissal-backed-off ·
+  not-on-cooldown). Only if it says ACT does the LLM run — one `select_and_compose` call to **pick
+  the best fit from that vetted set and write the message**. The decision and every ethic (e.g.
+  `life_event` → whole-customer *wait*) are guaranteed in code, never left to the prompt.
+  "Code disposes the decision and the safe set; the LLM proposes the relevance pick and the wording."
+- Product candidates + eligibility (`routing.py`) and the gate (`guardrails.py`) stay fully
+  deterministic; the *only* LLM call is the select-and-compose step, and only on an ACT.
+  (The older `route → hypothesise → critique → decide → compose` LangGraph was removed — the
+  critique was fed the same numbers the gate already decided on, so it added nothing.)
 - **Vernacular by design.** Messages are generated in the customer's `language_pref`
   (en/hi/ta/te/bn), jargon-free and outcome-framed, per the behavioral philosophy.
 - Set `GROQ_API_KEY` (and optionally `GROQ_MODEL`) in `.env`. If the key is missing or a

@@ -158,3 +158,120 @@ def evaluate(signal_type: str, ctx, target: str | None = None) -> Outcome:
 
     return Outcome("act", chosen, candidates, authority, conf,
                    f"eligible and unheld; offer {chosen} at authority level {authority}.")
+
+
+# --------------------------------------------------------------------------- #
+# Per-CUSTOMER decision (the Analyser loop's gate). Reasons over ALL of one
+# customer's active signals at once, so restraint follows the person not the
+# trigger, and the customer gets one coherent outreach, not one per signal.
+#
+# Code builds the SAFE SET first (eligible · unheld · ethically cleared · not
+# recently contacted · not a backed-off category); the LLM only picks within it
+# and writes the message. The LLM can never reach an option code didn't allow.
+# --------------------------------------------------------------------------- #
+@dataclass
+class CustomerDecision:
+    outcome: str                  # act | wait | escalate
+    safe_set: list                # [{product_id, signal_type, signal_id, source_ref, category}] (act only)
+    reason: str                   # auditable gate reason
+    primary_signal: str | None    # drives trigger_ref + confidence
+    primary_signal_id: str | None
+
+
+def authority_for(signal_type: str, product_id: str | None) -> int:
+    """Graduated-authority level for a (signal, chosen product) pair (1 insight · 2 one-tap ·
+    3 standing rule). Computed in code after the LLM picks — the LLM never sets authority."""
+    auth = AUTHORITY.get(signal_type, 1)
+    if signal_type == "idle_balance" and product_id == "dep_mod_autosweep":
+        return 3                                # auto-sweep is a set-once standing rule
+    return auth
+
+
+def decide_customer(ctx) -> CustomerDecision:
+    """One decision for the whole customer, given ctx.signals (list of (type, source_ref, id))
+    plus ctx.history (dismissals per category) and ctx.recent_products (cooldown set)."""
+    sigs = [s for s in getattr(ctx, "signals", []) if s[0] in routing.ANALYSER_SIGNALS]
+    active = {s[0] for s in sigs}
+
+    def _first_id(signal_type: str):
+        return next((sid for (st, _sr, sid) in sigs if st == signal_type), None)
+
+    # 1) Ethical pre-empt: a fresh medical/vulnerability event silences ALL outreach now.
+    #    (reengage.py revisits this wait gently once the acute moment passes.)
+    if "life_event" in active:
+        return CustomerDecision(
+            "wait", [],
+            "active vulnerability (recent medical event) — acknowledge and hold all outreach; "
+            "revisit gently once the acute moment has passed.",
+            "life_event", _first_id("life_event"))
+
+    # 2) Churn risk → a human relationship manager (never auto-push at someone heading out the door).
+    if "churn_risk" in active:
+        return CustomerDecision(
+            "escalate", [],
+            "trained churn model flags high attrition risk — escalate to a human relationship "
+            "manager for retention rather than auto-pushing a product.",
+            "churn_risk", _first_id("churn_risk"))
+
+    vulnerable, why = _vulnerable(ctx)          # here: severe stress only (life_event handled above)
+    held = {a.account_type for a in ctx.accounts} | {h.product_id for h in ctx.holdings}
+    dismissed = {cat for cat, n in (getattr(ctx, "history", {}) or {}).items() if n >= DISMISS_BACKOFF}
+    recent = getattr(ctx, "recent_products", set()) or set()
+
+    # eligible + unheld candidates across every signal (best-first, de-duped) — BEFORE ethics.
+    eligible_unheld, seen = [], set()
+    for stype, sref, sid in sigs:
+        if stype in ("life_event", "churn_risk"):
+            continue
+        for pid in routing.route(stype, ctx, sref):
+            if pid in seen or pid in held or not routing.is_eligible(pid, ctx, stype):
+                continue
+            seen.add(pid)
+            eligible_unheld.append({
+                "product_id": pid, "signal_type": stype, "signal_id": sid, "source_ref": sref,
+                "category": (ctx.products.get(pid, {}) or {}).get("category"),
+            })
+
+    # vulnerability lock: a severely-stressed customer is shielded from the two most
+    # exploitable-if-mistimed categories — insurance and unsecured debt — no matter the trigger.
+    offerable, locked_debt = [], False
+    for e in eligible_unheld:
+        if vulnerable and (e["category"] == "insurance" or e["product_id"] in UNSECURED_DEBT):
+            locked_debt = locked_debt or e["product_id"] in UNSECURED_DEBT
+            continue
+        offerable.append(e)
+
+    # suppression: drop backed-off categories and recently-contacted products (cooldown).
+    safe = [e for e in offerable if e["category"] not in dismissed and e["product_id"] not in recent]
+
+    primary_type, primary_id = (sigs[0][0], sigs[0][2]) if sigs else (None, None)
+
+    if not eligible_unheld:
+        return CustomerDecision(
+            "escalate", [],
+            "no eligible, unheld product for this customer's signals — route to bank-ops review.",
+            primary_type, primary_id)
+    if not offerable:
+        # everything they qualify for was ethically held back (they're in a vulnerable moment)
+        if locked_debt:
+            return CustomerDecision(
+                "escalate", [],
+                f"{why} with only unsecured debt available — escalate for human judgement rather "
+                "than auto-offering debt.",
+                primary_type, primary_id)
+        return CustomerDecision(
+            "wait", [],
+            f"vulnerable moment — {why} — and the only fitting help is insurance; holding back "
+            "rather than selling into the moment.",
+            primary_type, primary_id)
+    if not safe:
+        return CustomerDecision(
+            "wait", [],
+            "eligible products exist but were recently offered or previously dismissed — holding "
+            "to avoid over-contacting.",
+            primary_type, primary_id)
+
+    return CustomerDecision(
+        "act", safe,
+        f"{len(safe)} eligible, appropriate option(s) — selecting the best fit and reaching out.",
+        safe[0]["signal_type"], safe[0]["signal_id"])

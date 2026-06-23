@@ -337,8 +337,10 @@ def chat(req: ChatRequest, background: BackgroundTasks, db: Session = Depends(ge
         background.add_task(extract_and_store, req.customer_id,
                             msgs + [{"role": "assistant", "content": reply_text}])
         return {"reply": reply_text}
+    # Guide is for new/prospective customers; `customer_id`, when present (e.g. a signed-in demo
+    # identity), lets it look up an unfinished application — the Tier-2 drop-off path.
     from ..agent.guide import reply
-    return {"reply": reply(msgs, db)}
+    return {"reply": reply(msgs, db, identity=req.customer_id)}
 
 
 @app.post("/voice/transcribe")

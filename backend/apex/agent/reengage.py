@@ -55,9 +55,13 @@ def run(days: int = REENGAGE_AFTER_DAYS, send: bool = False,
     with SessionLocal() as session:
         products = _load_products(session)
 
+        # Only revisit waits that represent a deliberate VULNERABILITY hold (a medical life_event).
+        # Other waits — e.g. a cooldown/over-contact hold or an insurance-only restraint — must NOT
+        # get a "we noticed a sensitive moment" check-in; that would be wrong and intrusive.
         waits_q = session.query(Decision).filter(
             Decision.mode == "analyser",
             Decision.outcome == "wait",
+            Decision.trigger_ref.like("life_event:%"),
             Decision.created_at <= cutoff,
         )
         if customer_id:
