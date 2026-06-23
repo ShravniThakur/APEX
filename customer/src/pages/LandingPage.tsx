@@ -37,7 +37,7 @@ export default function LandingPage({ go }: { go: (t: Tab) => void }) {
             Open an account
           </button>
           <button
-            onClick={() => go('concierge')}
+            onClick={() => go('login')}
             className="rounded-xl border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-medium text-slate-100 transition hover:bg-white/10"
           >
             I already bank with SBI

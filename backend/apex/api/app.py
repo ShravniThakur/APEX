@@ -19,7 +19,8 @@ from sqlalchemy.orm import Session
 from ..config import PUBLIC_URL
 from ..database.db import SessionLocal
 from ..database.models import (
-    Account, Action, Customer, Decision, Holding, Outcome, Product, Score, Signal, Transaction,
+    Account, Action, Application, Customer, Decision, Holding, Outcome, Product, Score, Signal,
+    Transaction,
 )
 from . import serializers as S
 
@@ -366,6 +367,28 @@ def demo_simulate(scenario: str = "idle_balance"):
         return simulate(scenario)
     except KeyError:
         raise HTTPException(404, f"unknown scenario '{scenario}'")
+
+
+@app.get("/demo/dropoffs")
+def demo_dropoffs(db: Session = Depends(get_db)):
+    """Customers with an unfinished application — the Tier-2 drop-off cases. The login page's
+    'resume an application' path signs in as one of these. This is a demo stand-in for SBI's real
+    phone/PAN/OTP resume login, which APEX does not own (it only reads the application state)."""
+    apps = (db.query(Application)
+              .filter(Application.status.in_(("in_progress", "abandoned")))
+              .order_by(Application.last_updated_at.desc()).all())
+    out = []
+    for a in apps:
+        try:
+            cust = db.get(Customer, a.customer_ref) if a.customer_ref else None
+        except Exception:  # noqa: BLE001 — customer_ref isn't a customer UUID (e.g. a raw phone/PAN)
+            cust = None
+        if cust is None:
+            continue
+        prod = db.get(Product, a.product_id) if a.product_id else None
+        out.append({"id": str(cust.customer_id), "name": cust.name,
+                    "current_step": a.current_step, "product": prod.name if prod else a.product_id})
+    return out
 
 
 # --------------------------------------------------------------------------- #

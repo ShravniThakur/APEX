@@ -4,8 +4,9 @@ import GuidePage from './pages/GuidePage'
 import ConciergePage from './pages/ConciergePage'
 import DemoPage from './pages/DemoPage'
 import ExplorePage from './pages/ExplorePage'
+import LoginPage from './pages/LoginPage'
 
-export type Tab = 'home' | 'guide' | 'explore' | 'concierge' | 'demo'
+export type Tab = 'home' | 'guide' | 'explore' | 'concierge' | 'demo' | 'login'
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('home')
@@ -18,11 +19,17 @@ export default function App() {
             <div className="text-lg font-semibold text-white">APEX</div>
             <div className="text-xs text-blue-200/70">Your money, in plain language</div>
           </button>
-          <nav className="flex gap-1 text-sm">
+          <nav className="flex items-center gap-1 text-sm">
             <TabButton id="guide" tab={tab} setTab={setTab} label="Open an account" />
             <TabButton id="explore" tab={tab} setTab={setTab} label="Explore" />
             <TabButton id="concierge" tab={tab} setTab={setTab} label="My finances" />
             <TabButton id="demo" tab={tab} setTab={setTab} label="See it in action" />
+            <button
+              onClick={() => setTab('login')}
+              className={`ml-2 rounded-lg px-3 py-2 ${tab === 'login' ? 'bg-blue-600 text-white' : 'border border-white/15 text-slate-200 hover:bg-white/10'}`}
+            >
+              Sign in
+            </button>
           </nav>
         </div>
       </header>
@@ -32,9 +39,10 @@ export default function App() {
         ) : (
           // Concierge is a two-column workspace (snapshot + chat), so it gets a wider container.
           <div className={`mx-auto px-5 py-4 ${tab === 'concierge' ? 'max-w-7xl' : 'max-w-3xl'}`}>
+            {tab === 'login' && <LoginPage go={setTab} />}
             {tab === 'guide' && <GuidePage />}
             {tab === 'explore' && <ExplorePage />}
-            {tab === 'concierge' && <ConciergePage />}
+            {tab === 'concierge' && <ConciergePage go={setTab} />}
             {tab === 'demo' && <DemoPage goToConcierge={() => setTab('concierge')} />}
           </div>
         )}

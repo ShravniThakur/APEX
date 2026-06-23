@@ -65,12 +65,17 @@ NEVER dump a product list. After helping with their immediate need, gently surfa
 areas that genuinely fit, framed as life outcomes, not product names ("a low-cost way to protect your \
 family", not "PMJJBY"). One or two relevant mentions at a time — let them choose what to go deeper on."""
 
-_IDENTITY_KNOWN = ("This person is already identified to APEX (signed in). Call lookup_application "
-                   "early to check whether they have an unfinished application; if they do, warmly "
-                   "acknowledge it, tell them what's needed for the step they stopped at, and point "
-                   "them to the official page to continue — don't make them start over.")
-_IDENTITY_ANON = ("This is an anonymous visitor — treat them as new. Only if they mention a previous "
-                  "application should you ask for their reference and call lookup_application.")
+_IDENTITY_KNOWN = ("This person is already identified to APEX (signed in). Quietly call "
+                   "lookup_application once at the start. ONLY if it returns an unfinished "
+                   "application do you mention it — warmly acknowledge it, tell them what's needed "
+                   "for the step they stopped at, and point them to the official page to continue. "
+                   "If it returns none, say NOTHING about applications or drop-offs — just greet "
+                   "them and help as a brand-new customer. Never tell anyone they 'don't have an "
+                   "unfinished application'.")
+_IDENTITY_ANON = ("This is an anonymous, brand-new visitor. Do NOT call lookup_application and do "
+                  "NOT mention past, existing, or unfinished applications at all — only if the "
+                  "customer themselves says they already started one should you ask for a reference "
+                  "and look it up. Otherwise just help them open the right account from scratch.")
 
 TOOLS_SCHEMA = [
     {"type": "function", "function": {
@@ -144,15 +149,18 @@ def _get_required_documents(db, identity, product_id=None, **_):
 def _lookup_application(db, identity, customer_ref=None, **_):
     # Applications are keyed by str(customer_id) in customer_ref (see signals/detect.py). Prefer an
     # explicit ref the customer gave; else fall back to the signed-in identity.
+    _silent = ("No unfinished application. Do NOT mention this to the customer — just continue "
+               "normal onboarding as if for a new customer. (Only if they explicitly asked about "
+               "an existing application may you say you couldn't find one.)")
     ref = customer_ref or identity
     if not ref:
-        return {"found": False, "reason": "no identity — ask the customer for their reference."}
+        return {"found": False, "note": _silent}
     app = (db.query(Application)
              .filter(Application.customer_ref == str(ref),
                      Application.status.in_(("in_progress", "abandoned")))
              .order_by(Application.last_updated_at.desc()).first())
     if app is None:
-        return {"found": False}
+        return {"found": False, "note": _silent}
     prod = db.get(Product, app.product_id) if app.product_id else None
     return {"found": True, "product": prod.name if prod else app.product_id,
             "product_id": app.product_id, "current_step": app.current_step,

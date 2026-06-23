@@ -36,6 +36,13 @@ export interface CustomerLite {
   customer_type: string | null
 }
 
+export interface Dropoff {
+  id: string
+  name: string
+  current_step: string | null
+  product: string | null
+}
+
 export interface Product {
   product_id: string
   name: string
@@ -97,6 +104,8 @@ async function post<T>(path: string): Promise<T> {
 export const api = {
   // Used only for the demo "sign in as" picker — production would authenticate the customer.
   customers: () => get<CustomerLite[]>('/customers'),
+  // Customers with an unfinished application (Tier-2 drop-offs) — for the resume path on login.
+  dropoffs: () => get<Dropoff[]>('/demo/dropoffs'),
   products: () => get<Product[]>('/products'),
   insights: (id: string) => get<Insights>(`/insights/${id}`),
   explain: (whyUrl: string) => get<{ explanation: string; declined: boolean }>(
