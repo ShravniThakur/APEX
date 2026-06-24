@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, type ChatMessage } from '../api'
 import { speak, stopSpeaking, useRecorder } from '../lib/voice'
+import Avatar from './Avatar'
 import { Card } from './ui'
 
 interface Props {
@@ -19,8 +20,10 @@ export default function ChatPanel({ mode, customerId, lang, intro }: Props) {
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [tts, setTts] = useState(false)
+  const [speaking, setSpeaking] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const recorder = useRecorder()
+  const stopVoice = () => { stopSpeaking(); setSpeaking(false) }
   const endRef = useRef<HTMLDivElement>(null)
   // Skip the very first persist after a (re)load, so loading saved history doesn't immediately
   // overwrite it with the transient empty state during the load render.
@@ -32,7 +35,7 @@ export default function ChatPanel({ mode, customerId, lang, intro }: Props) {
   // this is what makes the chat survive a page refresh.
   useEffect(() => {
     setErr(null)
-    stopSpeaking()
+    stopVoice()
     skipPersist.current = true
     try {
       const saved = localStorage.getItem(chatKey(mode, customerId))
@@ -40,6 +43,7 @@ export default function ChatPanel({ mode, customerId, lang, intro }: Props) {
     } catch {
       setMessages([])
     }
+    return () => stopVoice()   // stop any speech when leaving / switching mode
   }, [customerId, mode])
 
   // Persist on every change after the initial load.
@@ -59,7 +63,7 @@ export default function ChatPanel({ mode, customerId, lang, intro }: Props) {
     try {
       const { reply } = await api.chat({ mode, customer_id: customerId, messages: next })
       setMessages([...next, { role: 'assistant', content: reply }])
-      if (tts) speak(reply, lang)
+      if (tts) speak(reply, lang, { onStart: () => setSpeaking(true), onEnd: () => setSpeaking(false) })
     } catch (e) {
       setErr(String(e))
     } finally {
@@ -80,15 +84,19 @@ export default function ChatPanel({ mode, customerId, lang, intro }: Props) {
         setBusy(false)
       }
     } else {
-      stopSpeaking()
+      stopVoice()
       await recorder.start()
     }
   }
 
   return (
     <Card className="flex h-[68vh] flex-col lg:h-full">
-      <div className="flex items-center justify-end border-b border-white/10 px-4 py-2">
-        <label className="flex items-center gap-2 text-xs text-slate-400">
+      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+        <div className="flex items-center gap-3">
+          <Avatar speaking={speaking} size={48} />
+          <span className="text-base font-semibold text-slate-100">APEX</span>
+        </div>
+        <label className="flex items-center gap-2 text-xs text-slate-300">
           <input type="checkbox" checked={tts} onChange={(e) => setTts(e.target.checked)} />
           Speak replies
         </label>
@@ -97,7 +105,7 @@ export default function ChatPanel({ mode, customerId, lang, intro }: Props) {
       <div className="flex-1 space-y-3 overflow-y-auto p-4">
         <Bubble role="assistant" content={intro} />
         {messages.map((m, i) => <Bubble key={i} role={m.role} content={m.content} />)}
-        {busy && <div className="text-sm text-slate-400">APEX is thinking…</div>}
+        {busy && <div className="text-sm text-slate-300">APEX is thinking…</div>}
         {err && <div className="text-sm text-rose-300">{err}</div>}
         <div ref={endRef} />
       </div>
@@ -122,7 +130,7 @@ export default function ChatPanel({ mode, customerId, lang, intro }: Props) {
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type a message…"
           disabled={busy}
-          className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 outline-none focus:border-blue-400"
+          className="flex-1 rounded-lg border border-white/10 bg-white/[0.08] px-3 py-2 text-sm text-slate-100 placeholder-slate-400 outline-none focus:border-blue-400"
         />
         <button
           type="submit"
@@ -168,7 +176,7 @@ function Bubble({ role, content }: { role: 'user' | 'assistant'; content: string
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
         className={`max-w-[80%] whitespace-pre-line rounded-2xl px-4 py-2 text-sm ${
-          isUser ? 'bg-blue-600 text-white' : 'bg-white/5 text-slate-100'
+          isUser ? 'bg-blue-600 text-white' : 'bg-white/[0.08] text-slate-100'
         }`}
       >
         {renderWithLinks(content, isUser)}

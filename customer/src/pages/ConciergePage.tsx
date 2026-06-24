@@ -25,8 +25,8 @@ export default function ConciergePage({ go }: { go: (t: Tab) => void }) {
   if (!me) {
     return (
       <div>
-        <h1 className="mb-1 text-xl font-semibold text-white">My finances</h1>
-        <p className="mb-4 text-sm text-slate-400">Sign in to talk to APEX about your money.</p>
+        <h1 className="mb-2 text-2xl font-semibold text-white sm:text-3xl">My finances</h1>
+        <p className="mb-6 text-base text-slate-300">Sign in to talk to APEX about your money.</p>
         <Card className="p-5">
           <p className="text-sm text-slate-300">You're not signed in.</p>
           <button
@@ -43,12 +43,12 @@ export default function ConciergePage({ go }: { go: (t: Tab) => void }) {
   return (
     <div>
       {/* Header spans the full width, so the two columns below start at the same level. */}
-      <div className="mb-4 flex items-end justify-between">
+      <div className="mb-6 flex items-end justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-white">Hello, {me.name.split(' ')[0]}</h1>
-          <p className="text-sm text-slate-400">Ask APEX anything about your money.</p>
+          <h1 className="text-2xl font-semibold text-white sm:text-3xl">Hello, {me.name.split(' ')[0]}</h1>
+          <p className="mt-1 text-base text-slate-300">Ask APEX anything about your money.</p>
         </div>
-        <button onClick={logOut} className="text-sm text-slate-400 hover:underline">Log out</button>
+        <button onClick={logOut} className="text-sm text-slate-300 hover:underline">Log out</button>
       </div>
 
       {/* Both columns stretch to the same height (left content sets it; the chat fills via h-full). */}

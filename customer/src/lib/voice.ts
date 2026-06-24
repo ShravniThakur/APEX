@@ -4,12 +4,23 @@ const LANG_BCP: Record<string, string> = {
   en: 'en-IN', hi: 'hi-IN', ta: 'ta-IN', te: 'te-IN', bn: 'bn-IN',
 }
 
-/** Speak text with the browser's built-in TTS, in the customer's language. */
-export function speak(text: string, lang?: string) {
+export interface SpeakHandlers {
+  onStart?: () => void
+  onEnd?: () => void
+}
+
+/** Speak text with the browser's built-in TTS, in the customer's language. Optional handlers
+ *  report start/end so a talking avatar can animate while speech is playing. */
+export function speak(text: string, lang?: string, handlers?: SpeakHandlers) {
   if (!('speechSynthesis' in window)) return
   window.speechSynthesis.cancel()
   const u = new SpeechSynthesisUtterance(text)
   u.lang = LANG_BCP[lang ?? 'en'] ?? 'en-IN'
+  if (handlers) {
+    u.onstart = () => handlers.onStart?.()
+    u.onend = () => handlers.onEnd?.()
+    u.onerror = () => handlers.onEnd?.()
+  }
   window.speechSynthesis.speak(u)
 }
 

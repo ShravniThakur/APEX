@@ -17,7 +17,7 @@ export default function App() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
           <button onClick={() => setTab('home')} className="text-left">
             <div className="text-lg font-semibold text-white">APEX</div>
-            <div className="text-xs text-blue-200/70">Your money, in plain language</div>
+            <div className="text-xs text-blue-200">Your money, in plain language</div>
           </button>
           <nav className="flex items-center gap-1 text-sm">
             <TabButton id="guide" tab={tab} setTab={setTab} label="Open an account" />
@@ -37,8 +37,8 @@ export default function App() {
         {tab === 'home' ? (
           <LandingPage go={setTab} />
         ) : (
-          // Concierge is a two-column workspace (snapshot + chat), so it gets a wider container.
-          <div className={`mx-auto px-5 py-4 ${tab === 'concierge' ? 'max-w-7xl' : 'max-w-3xl'}`}>
+          // Concierge and Explore are multi-pane workspaces, so they get the wider container.
+          <div className={`mx-auto px-5 py-8 sm:py-10 ${tab === 'concierge' || tab === 'explore' ? 'max-w-7xl' : 'max-w-3xl'}`}>
             {tab === 'login' && <LoginPage go={setTab} />}
             {tab === 'guide' && <GuidePage />}
             {tab === 'explore' && <ExplorePage />}

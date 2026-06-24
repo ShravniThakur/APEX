@@ -34,14 +34,14 @@ export default function LoginPage({ go }: { go: (t: Tab) => void }) {
 
   return (
     <div className="mx-auto max-w-3xl py-8">
-      <h1 className="text-2xl font-semibold text-white">Welcome to APEX</h1>
-      <p className="mt-1 text-sm text-slate-400">Sign in, pick up an application you started, or open a new account.</p>
+      <h1 className="text-2xl font-semibold text-white sm:text-3xl">Welcome to APEX</h1>
+      <p className="mt-1 text-base text-slate-300">Sign in, pick up an application you started, or open a new account.</p>
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         {/* Existing customer */}
         <Card className="p-5">
           <h2 className="text-base font-semibold text-white">Already bank with SBI?</h2>
-          <p className="mt-1 text-xs text-slate-400">Sign in to talk to APEX about your money.</p>
+          <p className="mt-1 text-xs text-slate-300">Sign in to talk to APEX about your money.</p>
           <button
             disabled
             title="Wired to SBI SSO in production — use the demo picker below"
@@ -50,11 +50,11 @@ export default function LoginPage({ go }: { go: (t: Tab) => void }) {
             Login with SBI
           </button>
           <div className="mt-3">
-            <label className="mb-1 block text-xs font-medium text-slate-400">Sign in as (demo)</label>
+            <label className="mb-1 block text-xs font-medium text-slate-300">Sign in as (demo)</label>
             <select
               defaultValue=""
               onChange={(e) => e.target.value && enterAs(e.target.value, 'concierge')}
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100 outline-none focus:border-blue-400"
+              className="w-full rounded-lg border border-white/10 bg-white/[0.08] px-3 py-2 text-sm text-slate-100 outline-none focus:border-blue-400"
             >
               <option value="" className="bg-[#0b1220] text-slate-100">Choose your profile…</option>
               {[...customers].sort((a, b) => a.name.localeCompare(b.name)).map((c) => (
@@ -63,21 +63,21 @@ export default function LoginPage({ go }: { go: (t: Tab) => void }) {
                 </option>
               ))}
             </select>
-            <p className="mt-2 text-[11px] text-slate-500">The picker stands in for SBI's real login.</p>
+            <p className="mt-2 text-[11px] text-slate-400">The picker stands in for SBI's real login.</p>
           </div>
         </Card>
 
         {/* Resume an application (drop-off) */}
         <Card className="p-5">
           <h2 className="text-base font-semibold text-white">Started an application?</h2>
-          <p className="mt-1 text-xs text-slate-400">Enter the mobile number you began with to pick up where you left off.</p>
+          <p className="mt-1 text-xs text-slate-300">Enter the mobile number you began with to pick up where you left off.</p>
           <form onSubmit={(e) => { e.preventDefault(); resume() }} className="mt-4">
             <input
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               inputMode="tel"
               placeholder="Mobile number"
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-slate-100 outline-none focus:border-blue-400"
+              className="w-full rounded-lg border border-white/10 bg-white/[0.08] px-3 py-2.5 text-sm text-slate-100 outline-none focus:border-blue-400"
             />
             <button
               type="submit"
@@ -86,7 +86,7 @@ export default function LoginPage({ go }: { go: (t: Tab) => void }) {
               Resume application
             </button>
           </form>
-          <p className="mt-2 text-[11px] text-slate-500">
+          <p className="mt-2 text-[11px] text-slate-400">
             Demo: any number resumes a seeded drop-off. In production this is SBI's own phone/PAN/OTP resume.
           </p>
           {err && customers && <p className="mt-2 text-[11px] text-rose-300">{err}</p>}
@@ -94,7 +94,7 @@ export default function LoginPage({ go }: { go: (t: Tab) => void }) {
       </div>
 
       {/* New customer — no identity needed */}
-      <div className="mt-6 flex items-center justify-center gap-2 text-sm text-slate-400">
+      <div className="mt-6 flex items-center justify-center gap-2 text-sm text-slate-300">
         <span>New to SBI?</span>
         <button onClick={startFresh} className="font-medium text-blue-300 hover:underline">
           Open an account →

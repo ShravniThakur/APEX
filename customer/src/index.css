@@ -12,11 +12,16 @@ body {
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
-/* App backdrop: deep navy with soft SBI-blue glows up top. */
+/* App backdrop: deep navy with SBI-blue glows up top, over a very faint grid.
+   Layer order (top → bottom): glows · grid lines · base navy. The glows wash over
+   the grid up top, so the texture reads most in the darker lower areas. */
 .app-bg {
   background:
-    radial-gradient(55% 45% at 50% -5%, rgba(37, 99, 235, 0.22), transparent 70%),
-    radial-gradient(40% 40% at 88% 8%, rgba(13, 110, 253, 0.14), transparent 70%),
+    radial-gradient(60% 50% at 50% -5%, rgba(37, 99, 235, 0.38), transparent 72%),
+    radial-gradient(45% 45% at 88% 8%, rgba(13, 110, 253, 0.26), transparent 72%),
+    radial-gradient(40% 40% at 12% 6%, rgba(56, 130, 246, 0.18), transparent 72%),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 46px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 46px),
     #060b1a;
   min-height: 100vh;
 }
@@ -43,4 +48,16 @@ body {
 .marquee-mask {
   -webkit-mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
   mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+}
+
+/* Subtle entry: cards/figures fade up into place. Staggered via inline animation-delay. */
+@keyframes apex-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+.apex-rise {
+  animation: apex-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .apex-rise { animation: none; }
 }

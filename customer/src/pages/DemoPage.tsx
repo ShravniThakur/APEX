@@ -36,8 +36,8 @@ export default function DemoPage({ goToConcierge }: { goToConcierge: () => void 
 
   return (
     <div>
-      <h1 className="mb-1 text-xl font-semibold text-white">See APEX in action</h1>
-      <p className="mb-4 text-sm text-slate-400">
+      <h1 className="mb-2 text-2xl font-semibold text-white sm:text-3xl">See APEX in action</h1>
+      <p className="mb-8 text-base text-slate-300">
         Imagine you just opened an account. Fast-forward three months of real activity — and watch
         whether APEX notices a moment worth reaching out about.
       </p>
@@ -68,7 +68,7 @@ export default function DemoPage({ goToConcierge }: { goToConcierge: () => void 
       {result && (
         <div>
           <Card className="mb-4 p-5">
-            <div className="mb-3 text-sm text-slate-400">
+            <div className="mb-3 text-sm text-slate-300">
               After three months for <span className="font-medium text-slate-100">{result.name}</span>, APEX:
             </div>
             <div className="space-y-3">
@@ -99,8 +99,8 @@ function Outcome({ o }: { o: { outcome: string; message_text: string | null; dee
   if (o.outcome === 'act' && o.message_text) {
     return (
       <div>
-        <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">reached out</div>
-        <div className="whitespace-pre-line rounded-2xl bg-white/5 px-4 py-2 text-sm text-slate-100">
+        <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-300">reached out</div>
+        <div className="whitespace-pre-line rounded-2xl bg-white/[0.08] px-4 py-2 text-sm text-slate-100">
           {o.message_text}
         </div>
         {o.deep_link && (
@@ -120,7 +120,7 @@ function Outcome({ o }: { o: { outcome: string; message_text: string | null; dee
     )
   }
   return (
-    <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">
+    <div className="rounded-lg border border-white/10 bg-white/[0.08] px-4 py-2 text-sm text-slate-300">
       Flagged for a person to review.
     </div>
   )
