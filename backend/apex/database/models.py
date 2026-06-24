@@ -133,7 +133,7 @@ class Score(Base):
 
     score_id: Mapped[uuid.UUID] = _uuid_pk()
     customer_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("customers.customer_id"), index=True)
-    score_type: Mapped[str] = mapped_column(String)  # stress|propensity|dormancy|anomaly
+    score_type: Mapped[str] = mapped_column(String)  # stress|attrition|engagement_decay|anomaly
     value: Mapped[dict | None] = mapped_column(JSONB)  # float or per-category JSON
     computed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 

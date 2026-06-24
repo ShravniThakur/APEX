@@ -156,7 +156,7 @@ The gap isn't discovery or UX. It's **behavioral**:
   1. **Timing judgment** — code holds *all* outreach during a vulnerable moment (`life_event`), then a scheduled pass re-engages gently once it has passed.
   2. **Output is language, not a row** — outcome-framed, jargon-free, in the customer's language.
   3. **Relevance judgment** — among several *eligible* products, the LLM picks the one that fits this specific person (a conservative deposit for a risk-averse saver over a higher-ranked investment).
-- **The technically-correct-but-wrong case is caught in *code*, not hoped for in a prompt:** a high insurance propensity that exists *because* of a recent medical expense is blocked by the deterministic vulnerability lock — guaranteed, every time.
+- **The technically-correct-but-wrong case is caught in *code*, not hoped for in a prompt:** an insurance offer that looks like a perfect fit *because* of a recent medical expense is blocked by the deterministic vulnerability lock — guaranteed, every time.
 
 **The hybrid principle: "code disposes, the LLM proposes."** Code makes the act/wait/escalate decision and fixes the set of allowed products; the LLM proposes the relevance pick and the wording — it can never reach an unsafe option, raise the authority level, or act when code said hold.
 
@@ -176,7 +176,7 @@ The gap isn't discovery or UX. It's **behavioral**:
 
 ```
  ┌─ Layer 1  DATA SUBSTRATE ........ SBI's CBS (read-only) + product catalogue        [what exists]
- ├─ Layer 2  ML SCORING ............ stress · propensity · churn · anomaly (+sim,conf) [interpretation]
+ ├─ Layer 2  ML SCORING ............ stress · churn · anomaly · engagement-decay (+conf) [interpretation]
  ├─ Layer 3  SIGNAL DETECTION ...... cheap rule/threshold gate — who's worth waking    [the gate]
  ├─ Layer 4  THE DECISION GATE ..... per-customer code gate (act/wait/escalate + safe set) → LLM pick+compose [judgment]
  ├─ Layer 5  THREE MODES ........... Guide / Analyser / Concierge (shared data + ethics)  [context]
@@ -210,13 +210,12 @@ The gap isn't discovery or UX. It's **behavioral**:
 | Score | Answers | Type |
 |---|---|---|
 | **Stress** | Under financial strain right now? | Supervised (gradient-boosted trees) |
-| **Propensity** | How likely to want each product category? | Supervised, multi-label |
 | **Churn / dormancy** | Disengaging — and how far along? | Supervised (decay-trend features) |
 | **Anomaly** | Is this event unusual *for this customer*? | Unsupervised (per-customer baseline) |
 | *+ Similarity* | "Customers like this responded better to a 4-day wait" | Embedding / cosine |
 | *+ Confidence* | How sure are we? | **Derived** (distance from decision boundary — not a 5th model) |
 
-**Why ML and not just rules:** stress, propensity, and decay are **multi-signal patterns relative to a customer's own baseline** — no single threshold captures "spending velocity rising *while* balance drops, *for this person*." Where a clean rule suffices (e.g. "no transaction for 90 days = dormant"), APEX uses a rule. The mix is deliberate, not maximalist.
+**Why ML and not just rules:** stress and decay are **multi-signal patterns relative to a customer's own baseline** — no single threshold captures "spending velocity rising *while* balance drops, *for this person*." Where a clean rule suffices (e.g. "no transaction for 90 days = dormant"), APEX uses a rule. The mix is deliberate, not maximalist.
 
 **Two computation patterns:** scheduled **batch** (nightly — powers Analyser) and **on-demand** (live, one customer — powers Concierge). All scores land in a `SCORES` table.
 
@@ -329,9 +328,9 @@ Layer 2: score everyone   →  Layer 3: detect signals  →  Layer 4: decide (co
 
 1. **Batch scoring is embarrassingly parallel** — Layer 2 is tabular model inference on a feature store; the same nightly workload banks already run for fraud/risk. Distribute (Spark/batch), partition the base. No novel risk.
 2. **The LLM is off the critical path of the *decision*** — Layer 3 detection and the Layer 4 gate are deterministic and run cheaply on *every* customer. The LLM only does the relevance pick + message wording — one call, and *only* on the small "act" subset (wait/escalate make zero LLM calls). Decisions scale with customers; *generation* scales with the much smaller acted set.
-3. **Prioritisation when signals exceed capacity** — rank by `confidence × propensity × business value`; process top-N; let the rest **expire** via the signal `status` lifecycle (Layer 3). A 30-day cooldown prevents nagging.
+3. **Prioritisation when signals exceed capacity** — rank by `confidence × business value`; process top-N; let the rest **expire** via the signal `status` lifecycle (Layer 3). A 30-day cooldown prevents nagging.
 4. **Concierge scales with active users, not the base** — it's user-initiated; standard stateless-API + LLM chatbot scaling (horizontal workers, on-demand scoring for that one customer). Never touches the 500M.
-5. **MLOps closes the loop** — the `OUTCOMES` log becomes training data: propensity graduates from a cold-start prior to a model retrained on real responses, with drift monitoring + a model registry.
+5. **A causal feedback loop, plus MLOps** — the `OUTCOMES` log already drives the deterministic dismissal-count + cooldown that adjust decisions from day one; the trained models (stress, churn) get standard periodic retraining, drift monitoring + a model registry.
 6. **Blast radius ≈ zero** — as a read-only wrapper (Layer 6), if APEX fails, core banking is untouched, and the LLM degrades gracefully to deterministic text. This is what makes it *pilot-able* at a 1% slice, then scaled up.
 
 **Speaker notes:** Lever 2 is the subtle, impressive one — call it out. "Even at scale, the *decision* for millions of signals is cheap deterministic code. We only spend a language-model call once we've already decided to actually say something."
@@ -356,7 +355,7 @@ Layer 2: score everyone   →  Layer 3: detect signals  →  Layer 4: decide (co
 
 - Every outreach and its outcome (clicked / dismissed / ignored / completed) is logged (Layer 7).
 - A **per-category dismissal count** (read from that log) is **causal**: the deterministic gate strips any category a customer has dismissed ≥2× from their safe set, so it's simply never offered again — *"this customer has dismissed two investment nudges; stop offering investments."* Alongside it, a **30-day product cooldown** (also read from the log) holds back any product recommended recently. Both are visible and explainable, not silent score adjustments. (Today the count is flat; recency-weighting is a planned refinement.)
-- **At production scale**, accumulated real outcomes become the training set: the propensity model graduates from cold-start prior to a genuinely trained predictor — with MLOps (retraining cadence, drift detection, A/B, model registry).
+- **At production scale**, the accumulated outcomes also support standard MLOps for the trained models — retraining cadence, drift detection, A/B testing, a model registry.
 
 **Speaker notes:** The honest nuance, worth stating: full retraining needs *enough* real outcomes to be meaningful. The dismissal-count mechanism is the answer that works from day one (and it's already causal — it changes decisions); retraining is the answer once volume accumulates. Don't over-claim retraining on launch.
 
@@ -461,13 +460,12 @@ Layer 2: score everyone   →  Layer 3: detect signals  →  Layer 4: decide (co
 |---|---|---|
 | **Stress** | Under financial pressure? | Trained model (LightGBM) on synthetic latent-driver data |
 | **Attrition/churn** | About to leave? | Trained model on **real Kaggle** churn data → drives the `churn_risk` signal (escalate to a human RM for retention) |
-| **Propensity** | Likely to want each product category? | Trained model, synthetic — an honest **cold-start prior** |
 | **Engagement decay** | Opening the app less? | Heuristic (formula) |
 | **Anomaly** | Any transaction weird *for them*? | Heuristic (median + MAD, per-customer baseline) |
 
 **The one core idea — train/serve parity:** the *same feature functions* run in training and in serving (one shared shaping function builds both the model's training history and the demo's synthetic customers). No train/serve skew.
 
-**Speaker notes:** Be honest that propensity is a cold-start prior, not a validated predictor — there's no real customer-response ground truth in synthetic data. That honesty is a strength. Note we used *real* data where it exists (Kaggle churn) and synthetic only where it must be.
+**Speaker notes:** Be explicit about real vs synthetic: churn trains on real Kaggle data, stress on synthetic (no real stress-labelled ground truth exists) — real data where it exists, synthetic only where it must be. And own the deliberate omission: we **don't** ship a "propensity to buy" score, because inferring product desire from a demographic profile is exactly the segment-based recommending our philosophy rejects. Relevance comes from a **real fired signal** (a present need); explicit preference comes from **what the customer tells Concierge** — never from a profile.
 
 ---
 
@@ -512,7 +510,7 @@ Then: open the **ops dashboard** to show the reasoning trace; click the **email 
 | Data arrival | One-shot batch insert | Account webhooks + transaction streaming (Kafka) |
 | Cadence | On-demand "recompute fresh" | Nightly sweep + on-demand Concierge |
 | Dedup / suppression | Wipe & recompute (repeatable demo) | Incremental: signal lifecycle + cooldown + outcome back-off |
-| Models | Stress + propensity synthetic; churn real | Retrained on real outcomes (full MLOps) |
+| Models | Stress synthetic; churn real | Periodic retraining + drift monitoring (full MLOps) |
 | Channels | Real email to a sink; SMS/voice simulated | Real SMS/WhatsApp/voice telecom |
 | Scale | One process, in memory | Millions → distributed, queues, prioritisation |
 | Identity | Phone+OTP "sign in as" | SSO handoff from SBI's login |
@@ -529,7 +527,6 @@ Then: open the **ops dashboard** to show the reasoning trace; click the **email 
 **What's next, and what we're deliberately not claiming yet:**
 
 - **Level 4 autonomous execution** (with undo window) — needs SBI to grant scoped, audited write access. The natural next phase once trust in the read-only system is established.
-- **Propensity retraining** on accumulated real outcomes (replacing the cold-start prior).
 - **Tier 2 acquisition** depends on SBI's onboarding system resuming an application by ID/step — stated as an assumption, to be confirmed.
 - **`yono_path` → real deep-link URL templates** (real navigation structure already confirmed against `sbi.bank.in`).
 - **Prioritisation policy** for when a sweep surfaces more signals than capacity allows.
@@ -562,7 +559,7 @@ Then: open the **ops dashboard** to show the reasoning trace; click the **email 
 - **"What's actually fake in the demo?"** → Only the seams where SBI's own infrastructure would hand us something: data arriving, time passing, login. Never the reasoning. (Slide 30.)
 - **"Why not three agents for three pillars?"** → One reasoning core is more elegant and easier to keep ethically consistent; the wrapper already provides the decide/execute separation people use multi-agent for. (Slide 25.)
 - **"Why email and not WhatsApp?"** → Cost only — WhatsApp/SMS need paid telecom with no free tier. The reasoning and content are identical; only the delivery channel differs.
-- **"Where does ML stop and rules begin?"** → ML for multi-signal, baseline-relative patterns (stress, propensity, decay, anomaly); rules for clean thresholds (dormancy, idle balance, manual-recurring). We don't use ML where a rule is honest and cheaper. (Slides 13–14.)
+- **"Where does ML stop and rules begin?"** → ML for multi-signal, baseline-relative patterns (stress, decay, anomaly); rules for clean thresholds (dormancy, idle balance, manual-recurring). We don't use ML where a rule is honest and cheaper. (Slides 13–14.)
 - **"Where exactly is the LLM, and where is the code?"** → Code decides act/wait/escalate and builds the safe set (eligibility + every ethical rule). The LLM runs only on an `act`, and only to (a) pick the best-fit product from that already-vetted set and (b) write the message. We *had* a hypothesise→self-critique LLM loop and removed it — it was fed the same numbers the code gate already decided on, so it added cost and an illusion of reasoning, nothing causal. The leaner design is cheaper and more honest. (Slide 15.)
 - **"Can Concierge recommend something silly?"** → No longer — it calls `recommend_product`, which runs the same routing + eligibility + guardrail gate the Analyser uses, so it can't suggest something ineligible, already held, or inappropriate. The LLM phrases; code decides the product. (Slide 16.)
 - **"Isn't mining conversations for intent creepy?"** → It's the opposite of creepy *when done right*: an explicit, customer-voiced "I want to invest" is the customer pulling the product forward — the ideal. The guardrail is that a *disclosed vulnerability* (job loss, medical crisis) creates nothing and withdraws pending intents — we never turn distress into a sales trigger. Same ethical line, applied to conversation. (Slides 14, 16.)

@@ -33,7 +33,7 @@ python -m apex.database.init_db   # idempotent: re-running also applies additive
 # 2. Generate synthetic data (16 signal-personas + noise population)
 python -m apex.generator.generate --reset      # --reset wipes prior synthetic rows (keeps products)
 
-# 3. Train the ML models (stress synthetic, churn real, propensity synthetic) + write SCORES
+# 3. Train the ML models (stress synthetic, churn real) + write SCORES
 python -m apex.ml.train                         # persists artifacts to apex/ml/artifacts/
 python -m apex.ml.score                         # writes the SCORES table
 

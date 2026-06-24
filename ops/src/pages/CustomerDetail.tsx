@@ -115,21 +115,6 @@ function ScoreCard({ s }: { s: Score }) {
       </Card>
     )
   }
-  if (s.type === 'propensity') {
-    return (
-      <Card className="p-4">
-        <div className="mb-2 text-sm font-medium text-slate-600">Propensity</div>
-        <div className="space-y-1.5">
-          {Object.entries(v as Record<string, number>).map(([k, val]) => (
-            <div key={k} className="flex items-center gap-2">
-              <div className="w-20 text-xs text-slate-500">{k}</div>
-              <Meter value={val} compact />
-            </div>
-          ))}
-        </div>
-      </Card>
-    )
-  }
   if (s.type === 'anomaly') {
     const flagged = (v.flagged ?? []) as Array<{ category: string; magnitude: number }>
     return (

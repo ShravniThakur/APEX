@@ -39,6 +39,14 @@ def _render_html(message_text: str, links: dict | None) -> str:
     parts = [
         '<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;'
         'color:#222;line-height:1.6;max-width:560px">',
+        # Institutional letterhead — plain wordmark + a thin SBI-blue rule. No imagery and
+        # no benefit/money icons: this signals "a real, calm note from your bank," never a
+        # promotional offer (calm-institutional tone, APEX_README §2.3). Renders identically
+        # on the gentle re-engagement and the declined-explanation messages too.
+        '<div style="border-bottom:2px solid #1a4d8f;padding-bottom:10px;margin-bottom:18px">'
+        '<span style="font-size:20px;font-weight:bold;color:#1a4d8f;letter-spacing:1px">APEX</span>'
+        '<span style="font-size:12px;color:#888;margin-left:8px">from SBI</span>'
+        "</div>",
         f"<p>{body}</p>",
     ]
     if links:

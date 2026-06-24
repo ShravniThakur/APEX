@@ -1,10 +1,9 @@
-"""Train the 3 supervised models, persist artifacts, report metrics (specs/ml.md).
+"""Train the 2 supervised models, persist artifacts, report metrics (specs/ml.md).
 
     python -m apex.ml.train
 
 - stress           : synthetic latent-driver trainset
 - churn            : real Kaggle Churn_Modelling.csv
-- propensity       : synthetic latent-driver trainset, all categories (cold-start prior)
 
 Anomaly/confidence/similarity are not trained.
 """
@@ -14,12 +13,9 @@ from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 
 from ..config import BACKEND_DIR, RANDOM_SEED
-from .features import (
-    PROPENSITY_CATEGORIES, PROPENSITY_FEATURES, STRESS_FEATURES,
-    compute_propensity_features, compute_stress_features,
-)
+from .features import STRESS_FEATURES, compute_stress_features
 from .loaders import load_churn
-from .trainset import generate_propensity_trainset, generate_stress_trainset
+from .trainset import generate_stress_trainset
 
 ARTIFACTS = BACKEND_DIR / "apex" / "ml" / "artifacts"
 
@@ -62,31 +58,11 @@ def train_churn():
     joblib.dump({"model": model, "features": list(X.columns), "auc": auc}, ARTIFACTS / "churn.joblib")
 
 
-def train_propensity():
-    """One binary GBM per category over a shared feature matrix; bundled into a single
-    artifact. Synthetic cold-start prior — swap the trainset for an OUTCOMES loader once
-    real click data exists; features/model/scoring stay unchanged."""
-    records, labels = generate_propensity_trainset(seed=RANDOM_SEED)
-    X = pd.DataFrame([compute_propensity_features(r) for r in records])[PROPENSITY_FEATURES]
-    models, aucs = {}, {}
-    for cat in PROPENSITY_CATEGORIES:
-        y = pd.Series([lab[cat] for lab in labels])
-        model, auc = _fit_report(f"propensity:{cat} (synthetic)", X, y)
-        models[cat] = model
-        aucs[cat] = auc
-    joblib.dump(
-        {"models": models, "features": PROPENSITY_FEATURES,
-         "categories": PROPENSITY_CATEGORIES, "aucs": aucs},
-        ARTIFACTS / "propensity.joblib",
-    )
-
-
 def main():
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
     print(f"Training (backend: {BACKEND})...")
     train_stress()
     train_churn()
-    train_propensity()
     print(f"Artifacts written to {ARTIFACTS}")
 
 

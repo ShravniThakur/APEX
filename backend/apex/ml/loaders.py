@@ -1,8 +1,8 @@
 """Load + clean the real public training dataset (specs/ml.md).
 
 Only the feature-intersection columns are kept — the ones we can also compute
-for our own customers at serve time (no train/serve skew). Only attrition (churn)
-trains on real data now; propensity is synthetic (see trainset.py).
+for our own customers at serve time (no train/serve skew). Attrition (churn)
+trains on this real data; stress is synthetic (see trainset.py).
 """
 import pandas as pd
 

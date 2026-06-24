@@ -159,15 +159,21 @@ a seed; `--reset` wipes synthetic rows but keeps products.
 ## 6. ML scoring layer
 
 Turns raw substrate into a few calibrated **scores** per customer, so the agent reasons on
-"stress = 0.81" instead of raw transactions. **5 scores: 3 trained models + 2 heuristics.**
+"stress = 0.81" instead of raw transactions. **4 scores: 2 trained models + 2 heuristics.**
 
 | Score | Answers | How |
 |---|---|---|
 | stress | under financial pressure? | trained model (synthetic data) |
 | attrition | about to leave the bank? | trained model (real Kaggle data) |
-| propensity | likely to want each product category? | trained model (synthetic, cold-start prior) |
 | engagement_decay | opening the app less? | heuristic (formula) |
 | anomaly | any transaction weird *for them*? | heuristic (statistics) |
+
+> **No propensity ("likely to want X") model.** A demographic affinity score — "people like
+> you tend to want investments" — is exactly the *segment-based recommender* the behavioral
+> philosophy rejects (APEX is a life-moment detector, not "28-year-olds should invest"). Product
+> relevance comes from the **signal that fired** (a real present need), and explicit preference
+> comes from **`stated_intent`** — what the customer actually told Concierge they want — never
+> from inferring desire off a profile.
 
 **The one idea behind the whole layer — train/serve skew:** a model must see identically-shaped
 data in training and in production. The defense: the *same feature functions run at both times.*
@@ -175,8 +181,8 @@ data in training and in production. The defense: the *same feature functions run
 ### Which signals each score actually fires
 
 A score is only useful if a detector *reads* it. Most of the 17 signals are **pure raw-data rules**
-that touch no score at all; only a few are score-driven. Mapping the four non-propensity scores to
-the signals they trigger (in `signals/detectors.py`):
+that touch no score at all; only a few are score-driven. Mapping the four scores to the signals
+they trigger (in `signals/detectors.py`):
 
 | Score | Signal(s) it fires | How |
 |---|---|---|
@@ -205,22 +211,16 @@ Everything else (`dormancy`, `application_dropoff`, `idle_balance`, `fiscal_year
 - `generate_stress_trainset`: ~3000 fake customers, each with a random stress dial → a `shaping.py`
   history; label = stressed if dial > 0.6, then **~12% labels flipped** (so the model learns a real
   boundary, not the generator's recipe).
-- `generate_propensity_trainset`: the reworked one. Two-pass, **latent-driver** design — each fake
-  customer has hidden drivers (risk appetite, savviness, protection-seeking, liquidity need, digital
-  orientation) that observables only partly reveal; per-category affinity = latents + interactions;
-  labels threshold each category at its **own median** (balanced classes) with ~12% noise. It's an
-  honest **cold-start prior**, not a validated predictor.
 
 ### `features.py` — the shared translator (the skew defense)
-Four jobs: (1) the 5 **stress features** (spending velocity, balance slope, spend-to-income,
+Three jobs: (1) the 5 **stress features** (spending velocity, balance slope, spend-to-income,
 withdrawal irregularity, medical recency — with one-off giant debits stripped out first); (2) the
 **engagement-decay** heuristic; (3) the **churn mapper** (translate a customer into Kaggle's exact
-column names); (4) the **propensity features** (APEX-native fields + fixed category encodings). Both
-training and serving call these same functions.
+column names). Both training and serving call these same functions.
 
 ### `loaders.py` — the one real dataset
 Reads Kaggle's churn CSV for attrition, keeping only columns it can also compute for real customers
-(feature-intersection rule). (UCI was removed when propensity went synthetic.)
+(feature-intersection rule).
 
 ### `anomaly.py` — per-customer anomaly (heuristic, no model)
 "Is this debit unusually large *for this person*?" Uses median + MAD of their own debits; flags any
@@ -228,12 +228,12 @@ debit > ~3.5 spreads above their normal. Compares each person only to themselves
 (medical) and large_asset_purchase (vehicle/retail).
 
 ### `train.py` — the one-time factory
-Fits the 3 models (same recipe: data → features → 80/20 split → fit → ROC-AUC → save). Propensity =
-one binary model **per category**, bundled into one artifact. Uses LightGBM, falling back to
-scikit-learn. Each `.joblib` bundle also stores the feature list (skew defense at the artifact edge).
+Fits the 2 models (same recipe: data → features → 80/20 split → fit → ROC-AUC → save). Uses
+LightGBM, falling back to scikit-learn. Each `.joblib` bundle also stores the feature list (skew
+defense at the artifact edge).
 
 ### `score.py` — the conductor
-Loads the frozen models, gathers all customers' data once, and for each computes the 5 scores **via
+Loads the frozen models, gathers all customers' data once, and for each computes the 4 scores **via
 the same `features.py` functions training used**, writing the `scores` table (wiped and recomputed
 fresh each run).
 
@@ -688,9 +688,7 @@ paces the *same product*, back-off retires a *dismissed category*. Together they
 customer's multiple needs over time: one outreach now, the rest deferred to later runs, never all at
 once.
 
-Still remaining: **retraining propensity** on the real outcomes (replacing the cold-start prior)
-once enough responses accumulate; and making the dismissal count **recency-weighted** (today it's a
-flat count).
+Still remaining: making the dismissal count **recency-weighted** (today it's a flat count).
 
 ---
 
@@ -758,7 +756,7 @@ The guiding rule: **simulate the plumbing, keep the brain real.**
 | Data arrival | one-shot batch insert | account webhooks + transaction streaming (Kafka) |
 | Cadence | on-demand, "recompute fresh" | nightly sweep + on-demand Concierge |
 | Dedup | wipe & recompute | incremental: signal lifecycle + cooldown + outcome back-off |
-| Models | stress + propensity synthetic; churn real | retrained on real outcomes (MLOps) |
+| Models | stress synthetic; churn real | periodic retraining + drift monitoring (MLOps) |
 | Channels | real email to a sink; SMS/voice simulated | real SMS/WhatsApp/voice telecom |
 | Scale | one process, ~46 customers, all in memory | millions → distributed, queues, prioritisation |
 | Identity | "sign in as" picker | real authentication |
@@ -777,8 +775,7 @@ A single consolidated comparison, pulling together every demo/production distinc
 | **Account creation confirmation** | Simulated — "Simulate 3 months of activity" button stands in for SBI's internal system notifying APEX an account is live | Real — an internal event (webhook-style) fires the moment SBI's own KYC process completes |
 | **Mid-onboarding drop-off (Tier 2)** | Simulated — "Simulate drop-off here" button seeds an `APPLICATIONS` row after a backend-touching step (Aadhaar/PAN verification), since that's the realistic point SBI's backend would actually know | Real — SBI's own onboarding system already has this record as a side effect of running verification steps |
 | **Transaction/session data arrival** | Batch insert, instant, for demo pacing | Periodic internal sync (nightly/hourly) — never a per-transaction push; only account-level events are true real-time webhooks |
-| **ML scoring (stress, dormancy, anomaly)** | Real computation, run on synthetic data — the actual model logic, not faked | Identical models, run on real data |
-| **Propensity model** | Simulated/hand-assigned scores — no real customer responses exist yet to train on | Would need real accumulated outcomes before training is meaningful; even in production this starts thin |
+| **ML scoring (stress, attrition, anomaly)** | Real computation, run on synthetic data — the actual model logic, not faked | Identical models, run on real data |
 | **Signal detection** | Real rule logic, running against synthetic data | Identical — same rules, real data |
 | **Analyser decision loop (per-customer code gate → LLM pick + compose)** | Fully real — deterministic act/wait/escalate + safe-set ethics, then a genuine LLM relevance pick + vernacular message | Identical — this never changes between demo and production |
 | **Authority levels 1–3** | Fully real — insight, one-tap deep link, standing-rule detection all genuinely work | Identical |
@@ -802,12 +799,9 @@ A single consolidated comparison, pulling together every demo/production distinc
 
 - **Train/serve skew** — when a model's training data is described differently from production data,
   silently breaking it. Defended by sharing the feature functions across both.
-- **Latent drivers** — hidden traits (risk appetite, savviness…) not in any column, but which shape
-  visible behaviour. Used so the propensity model must *infer* hidden causes from noisy observables,
-  not echo a flat rule.
-- **Prior (cold-start)** — an educated starting belief used *before* real evidence exists. Propensity
-  is a cold-start prior because the `outcomes` table is empty at launch; it gets replaced by a model
-  trained on real responses once they accumulate.
+- **Latent driver** — a hidden trait not in any column (e.g. the stress trainset's hidden
+  `stress_level`) that shapes visible behaviour. Used so a model must *infer* the hidden cause from
+  noisy observables, not echo a flat rule.
 - **Graduated authority** — Level 1 insight (no action), Level 2 one-tap (confirm link), Level 3
   standing rule (set up once, runs itself). APEX never holds open-ended authority.
 - **Code gate** — the deterministic `decide` step where act/wait/escalate is settled in plain code,

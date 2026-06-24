@@ -52,7 +52,7 @@ python -m apex.database.init_db
 # 2. Wipe prior synthetic rows (keeps PRODUCTS) + regenerate the 16 personas + noise population
 python -m apex.generator.generate --reset
 
-# 3. Train the ML models (stress synthetic, churn real, propensity synthetic) → artifacts/
+# 3. Train the ML models (stress synthetic, churn real) → artifacts/
 python -m apex.ml.train
 
 # 4. Compute all scores for every customer → SCORES table
@@ -98,7 +98,7 @@ Flags combine freely, e.g. `python -m apex.agent.loop --incremental --limit 6 --
 
 ### What a healthy rebuild looks like
 
-- **Step 3 (train)** prints ROC-AUC per model and writes `apex/ml/artifacts/{stress,churn,propensity}.joblib`.
+- **Step 3 (train)** prints ROC-AUC per model and writes `apex/ml/artifacts/{stress,churn}.joblib`.
 - **Step 6 (validate)** is the report card. Expect: **recall** on every persona's expected signal, **silence** on the ~30 noise customers, and EXTRAS only as warnings.
   - ⚠️ **Expected today (date is 2026-06-22):** `fiscal_year_end_window` (persona *Anita Rao*) is **calendar-gated to Jan–Mar**, so out of that window it is reported as *conditional* (it passes if its precondition holds) — this is correct, not a failure.
 - **Step 7 (agent)** prints something like `act=… wait=… escalate=…`. You should see at least one **wait** (the medical/`life_event` persona, *Anjali Desai*) and at least one **escalate** (severe stress with only unsecured debt, *Suresh Kumar*, and/or `churn_risk`).
