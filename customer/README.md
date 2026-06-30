@@ -1,6 +1,6 @@
 # APEX — Customer Website (customer-facing)
 
-The **customer-facing** app — APEX's own website (APEX_README §11) where Guide and Concierge
+The **customer-facing** app — APEX's own website where Guide and Concierge
 live. React + Vite + TypeScript + Tailwind. Consumes the backend API. The internal bank view is a
 separate app: [../ops](../ops).
 
@@ -29,11 +29,11 @@ API base from `.env` (`VITE_API_URL`, default `http://localhost:8000`). The back
   agent's own act-decisions shown in-app (ethics-filtered: a wait/escalate produces nothing), each
   with Open / I've-done-this / Not-interested (which feed the outcome loop) — above a chat over their
   own data ("can I afford this?", "how's my spending?"). A demo sign-in picker stands in for real
-  authentication. Deliberately *not* a generic budgeting tracker (APEX_README §14): it surfaces
+  authentication. Deliberately *not* a generic budgeting tracker: it surfaces
   outcome-framed opportunities tied to bank products, not raw expense analytics.
 - **See it in action** (Demo) — the "Simulate 3 months" mechanic: pick a scenario, APEX seeds a
   customer's three months of activity then decides whether to reach out (or hold back), shows that
-  outreach, and lets you continue into **My finances** as that customer. (Per APEX_README §12 this
+  outreach, and lets you continue into **My finances** as that customer. (This
   was originally a bank-side control; moved here so the demo stays customer-facing.)
 
 Both support voice: 🎤 mic → Groq Whisper (backend) → text; replies can be spoken via the

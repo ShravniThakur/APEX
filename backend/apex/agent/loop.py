@@ -1,4 +1,4 @@
-"""Analyser-mode loop — one coherent outreach per CUSTOMER (specs APEX_README §3, §6-7).
+"""Analyser-mode loop — one coherent outreach per CUSTOMER.
 
     python -m apex.agent.loop                 # process all customers with Analyser signals
     python -m apex.agent.loop --limit 6       # only the first 6 customers (saves LLM calls)

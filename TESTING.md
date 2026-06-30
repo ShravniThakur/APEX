@@ -206,7 +206,7 @@ Concierge answers questions about a **specific** customer's real data using read
 
 **"Why am I seeing this?" (the transparency layer).** Each suggestion has a **Why am I seeing this?** link. Click it:
 - For a normal nudge (e.g. Priya's idle balance), it explains using **only a fact she can already see in her own account** ("a significant amount has been sitting idle…") — no jargon, no mention of scores or models.
-- **The restraint to demonstrate:** for an outreach that traces back to a vulnerable moment (a re-engagement after a `life_event` wait, or a customer flagged vulnerable), it **declines to elaborate** — a gentle, non-specific reply — so the customer can never reverse-engineer that something sensitive was detected. The decline is enforced in **code** before the LLM is ever called (APEX_README §6).
+- **The restraint to demonstrate:** for an outreach that traces back to a vulnerable moment (a re-engagement after a `life_event` wait, or a customer flagged vulnerable), it **declines to elaborate** — a gentle, non-specific reply — so the customer can never reverse-engineer that something sensitive was detected. The decline is enforced in **code** before the LLM is ever called.
 
 Verify headlessly:
 ```bash

@@ -1,4 +1,4 @@
-"""Real outbound email for Analyser actions, via Resend (APEX_README §10-11).
+"""Real outbound email for Analyser actions, via Resend.
 
 In non-prod EVERY message routes to config.DEMO_EMAIL (the sink) regardless of the
 customer's stored address — the demo never emails real third parties. Calm, institutional
@@ -41,7 +41,7 @@ def _render_html(message_text: str, links: dict | None) -> str:
         'color:#222;line-height:1.6;max-width:560px">',
         # Institutional letterhead — plain wordmark + a thin SBI-blue rule. No imagery and
         # no benefit/money icons: this signals "a real, calm note from your bank," never a
-        # promotional offer (calm-institutional tone, APEX_README §2.3). Renders identically
+        # promotional offer (calm-institutional tone). Renders identically
         # on the gentle re-engagement and the declined-explanation messages too.
         '<div style="border-bottom:2px solid #1a4d8f;padding-bottom:10px;margin-bottom:18px">'
         '<span style="font-size:20px;font-weight:bold;color:#1a4d8f;letter-spacing:1px">APEX</span>'

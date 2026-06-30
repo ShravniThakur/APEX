@@ -1,4 +1,4 @@
-"""Self-critique + Decide (specs APEX_README §6 ethical guardrail, §7 graduated authority).
+"""Self-critique + Decide (ethical guardrail + graduated authority).
 
 Deterministic on purpose: whether to act on a vulnerability signal, and at what authority,
 must never depend on an LLM's mood. The LLM explains these decisions; it does not make them.

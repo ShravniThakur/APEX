@@ -172,7 +172,7 @@ def explain_action(action_id: str, db: Session = Depends(get_db)):
     """Customer-facing 'Why am I seeing this?' — a constrained, plain-language explanation built ONLY
     from a fact the customer can already see in their own account. If the outreach traces back to a
     vulnerable moment, it deliberately DECLINES to elaborate, so the customer can't reverse-engineer
-    that something sensitive was detected (APEX_README §6). Defense in depth: the decline check is in
+    that something sensitive was detected. Defense in depth: the decline check is in
     code; the LLM only ever sees the non-sensitive case."""
     from ..agent import guardrails, llm
 
@@ -293,7 +293,7 @@ def pipeline_agent(limit: int | None = None, send: bool = False, reset: bool = T
 @app.post("/pipeline/reengage")
 def pipeline_reengage(days: int = 3, send: bool = False):
     """Revisit WAIT decisions whose acute window has passed and send a gentle, product-free
-    insight (APEX_README §6). days=0 revisits all waits now (demo pacing)."""
+    insight. days=0 revisits all waits now (demo pacing)."""
     from ..agent.reengage import run as run_reengage
     res = run_reengage(days=days, send=send)
     return {"ok": True, "step": "reengage", **res}

@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2080 980" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif">
+<defs><filter id="sh" x="-5%" y="-5%" width="110%" height="120%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00121f" flood-opacity="0.5"/></filter><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#6fb2ff"/></marker></defs>
+<rect x="0" y="0" width="2080" height="980" rx="0" fill="#003458" stroke="#003458" stroke-width="0"/>
+<text x="48" y="66" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="38" fill="#ffffff" text-anchor="start" font-weight="700">APEX — System Architecture</text>
+<text x="48" y="100" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#c4dceb" text-anchor="start">A wrapper over SBI’s core banking: APEX reasons and decides — the customer executes on SBI’s own page. APEX never writes to CBS.</text>
+<rect x="362" y="128" width="610" height="104" rx="14" fill="#f4f8fd" stroke="#cdd9ea" stroke-width="1.5" filter="url(#sh)"/>
+<text x="388" y="170" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="26" fill="#0f2147" text-anchor="start" font-weight="700">Customer Site</text>
+<text x="388" y="198" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#51617c" text-anchor="start">React · Vite</text>
+<text x="388" y="221" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#2563eb" text-anchor="start" font-weight="700">Guide · Concierge · Explore · Demo</text>
+<rect x="1052" y="128" width="610" height="104" rx="14" fill="#f4f8fd" stroke="#cdd9ea" stroke-width="1.5" filter="url(#sh)"/>
+<text x="1078" y="170" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="26" fill="#0f2147" text-anchor="start" font-weight="700">Bank Ops Console</text>
+<text x="1078" y="198" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#51617c" text-anchor="start">React · Vite</text>
+<text x="1078" y="221" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#2563eb" text-anchor="start" font-weight="700">Overview · Customers · Escalations</text>
+<rect x="362" y="288" width="1300" height="98" rx="14" fill="#e9f1fc" stroke="#c2d3ea" stroke-width="1.5" filter="url(#sh)"/>
+<text x="392" y="332" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="26" fill="#0f2147" text-anchor="start" font-weight="700">FastAPI — API Gateway</text>
+<text x="770" y="332" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#51617c" text-anchor="start">apex.api.app</text>
+<text x="392" y="364" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="17.5" fill="#2563eb" text-anchor="start">/chat   ·   /insights   ·   /pipeline   ·   /demo   ·   /escalations   ·   /voice</text>
+<line x1="667" y1="232" x2="667" y2="288" stroke="#6fb2ff" stroke-width="3.0" marker-end="url(#a)" marker-start="url(#a)"/>
+<line x1="1357" y1="232" x2="1357" y2="288" stroke="#6fb2ff" stroke-width="3.0" marker-end="url(#a)" marker-start="url(#a)"/>
+<rect x="362" y="412" width="1300" height="320" rx="18" fill="#0a4267" stroke="#236088" stroke-width="1.5" filter="url(#sh)"/>
+<text x="392" y="450" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#7bb8ff" text-anchor="start" font-weight="700" letter-spacing="1.8">APEX CORE</text>
+<text x="540" y="450" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#c4dceb" text-anchor="start">— reasoning &amp; pipeline</text>
+<line x1="1012" y1="386" x2="1012" y2="412" stroke="#6fb2ff" stroke-width="3.0" marker-end="url(#a)" marker-start="url(#a)"/>
+<rect x="386" y="470" width="400" height="232" rx="12" fill="#ffffff" stroke="#d3deee" stroke-width="1.5" filter="url(#sh)"/>
+<text x="412" y="514" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="17.5" fill="#2563eb" text-anchor="start" font-weight="700" letter-spacing="1.4">DATA &amp; ML</text>
+<text x="412" y="556" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#9fb1cc" text-anchor="start" font-weight="700">›</text>
+<text x="434" y="556" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#0f2147" text-anchor="start">generator — personas + noise</text>
+<text x="412" y="594" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#9fb1cc" text-anchor="start" font-weight="700">›</text>
+<text x="434" y="594" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#0f2147" text-anchor="start">train — stress, churn  (2 ML)</text>
+<text x="412" y="632" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#9fb1cc" text-anchor="start" font-weight="700">›</text>
+<text x="434" y="632" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#0f2147" text-anchor="start">anomaly / decay  (statistical)</text>
+<text x="412" y="670" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#9fb1cc" text-anchor="start" font-weight="700">›</text>
+<text x="434" y="670" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#0f2147" text-anchor="start">score  →  SCORES</text>
+<rect x="812" y="470" width="400" height="232" rx="12" fill="#ffffff" stroke="#d3deee" stroke-width="1.5" filter="url(#sh)"/>
+<text x="838" y="514" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="17.5" fill="#2563eb" text-anchor="start" font-weight="700" letter-spacing="1.4">SIGNALS</text>
+<text x="838" y="556" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#9fb1cc" text-anchor="start" font-weight="700">›</text>
+<text x="860" y="556" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#0f2147" text-anchor="start">detect — life-moment signals</text>
+<text x="838" y="594" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#9fb1cc" text-anchor="start" font-weight="700">›</text>
+<text x="860" y="594" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#0f2147" text-anchor="start">triage — who’s worth waking</text>
+<text x="838" y="632" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#9fb1cc" text-anchor="start" font-weight="700">›</text>
+<text x="860" y="632" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#0f2147" text-anchor="start">validate — answer-key check</text>
+<rect x="1238" y="470" width="400" height="232" rx="12" fill="#ffffff" stroke="#d3deee" stroke-width="1.5" filter="url(#sh)"/>
+<text x="1264" y="514" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="17.5" fill="#2563eb" text-anchor="start" font-weight="700" letter-spacing="1.4">AGENT / REASONING</text>
+<text x="1264" y="556" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#9fb1cc" text-anchor="start" font-weight="700">›</text>
+<text x="1286" y="556" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#0f2147" text-anchor="start">routing + ethical gate</text>
+<text x="1264" y="594" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#9fb1cc" text-anchor="start" font-weight="700">›</text>
+<text x="1286" y="594" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#0f2147" text-anchor="start">act / wait / escalate</text>
+<text x="1264" y="632" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#9fb1cc" text-anchor="start" font-weight="700">›</text>
+<text x="1286" y="632" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#0f2147" text-anchor="start">LLM pick &amp; compose</text>
+<text x="1264" y="670" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#9fb1cc" text-anchor="start" font-weight="700">›</text>
+<text x="1286" y="670" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#0f2147" text-anchor="start">mailer · reengage · feedback</text>
+<line x1="786" y1="586.0" x2="812" y2="586.0" stroke="#6fb2ff" stroke-width="3.0" marker-end="url(#a)"/>
+<line x1="1212" y1="586.0" x2="1238" y2="586.0" stroke="#6fb2ff" stroke-width="3.0" marker-end="url(#a)"/>
+<rect x="362" y="760" width="1300" height="132" rx="16" fill="#eef4fb" stroke="#c8d7ea" stroke-width="1.5" filter="url(#sh)"/>
+<text x="392" y="806" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="26" fill="#0f2147" text-anchor="start" font-weight="700">PostgreSQL</text>
+<text x="600" y="806" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#51617c" text-anchor="start">— 12 tables</text>
+<text x="392" y="844" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#2563eb" text-anchor="start" font-weight="700">Synced read / synthetic:</text>
+<text x="648" y="844" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="16.5" fill="#0f2147" text-anchor="start">customers · accounts · transactions · app_sessions · applications · holdings · products</text>
+<text x="392" y="874" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#2563eb" text-anchor="start" font-weight="700">Agent audit log:</text>
+<text x="572" y="874" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="16.5" fill="#0f2147" text-anchor="start">scores · signals · decisions · actions · outcomes</text>
+<line x1="1012" y1="732" x2="1012" y2="760" stroke="#6fb2ff" stroke-width="3.0" marker-end="url(#a)" marker-start="url(#a)"/>
+<rect x="44" y="460" width="290" height="160" rx="14" fill="#eef2f6" stroke="#cdd5df" stroke-width="1.5" filter="url(#sh)"/>
+<text x="68" y="506" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="23" fill="#0f2147" text-anchor="start" font-weight="700">SBI Core Banking</text>
+<text x="68" y="532" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#51617c" text-anchor="start">(CBS)</text>
+<text x="68" y="570" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#51617c" text-anchor="start">Sole source of truth</text>
+<text x="68" y="596" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#2563eb" text-anchor="start" font-weight="700">read-only sync →</text>
+<line x1="350" y1="414" x2="350" y2="898" stroke="#c4dceb" stroke-width="2" stroke-dasharray="7 6"/>
+<text x="342" y="656" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#c4dceb" text-anchor="middle" transform="rotate(-90 342 656)" font-style="italic">wrapper boundary — APEX never writes to CBS</text>
+<line x1="334" y1="542" x2="386" y2="542" stroke="#6fb2ff" stroke-width="2.6" marker-end="url(#a)" stroke-dasharray="6 5"/>
+<rect x="1700" y="460" width="340" height="140" rx="14" fill="#fdf4e8" stroke="#eddcc0" stroke-width="1.5" filter="url(#sh)"/>
+<text x="1726" y="506" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="23" fill="#0f2147" text-anchor="start" font-weight="700">LLM + Voice</text>
+<text x="1726" y="542" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="16.5" fill="#2563eb" text-anchor="start" font-weight="700">Prod:</text>
+<text x="1792" y="542" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="16.5" fill="#0f2147" text-anchor="start">self-hosted Ollama</text>
+<text x="1726" y="570" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="16.5" fill="#2563eb" text-anchor="start" font-weight="700">Demo:</text>
+<text x="1796" y="570" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="16.5" fill="#0f2147" text-anchor="start">Groq · Whisper STT</text>
+<rect x="1700" y="624" width="340" height="120" rx="14" fill="#fdf4e8" stroke="#eddcc0" stroke-width="1.5" filter="url(#sh)"/>
+<text x="1726" y="670" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="23" fill="#0f2147" text-anchor="start" font-weight="700">Outbound reach</text>
+<text x="1726" y="706" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="16.5" fill="#2563eb" text-anchor="start" font-weight="700">Prod:</text>
+<text x="1792" y="706" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="16.5" fill="#0f2147" text-anchor="start">WhatsApp / SMS</text>
+<text x="1726" y="734" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="16.5" fill="#2563eb" text-anchor="start" font-weight="700">Demo:</text>
+<text x="1796" y="734" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="16.5" fill="#0f2147" text-anchor="start">email (Resend)</text>
+<line x1="1638" y1="560" x2="1700" y2="536" stroke="#6fb2ff" stroke-width="2.8" marker-end="url(#a)"/>
+<line x1="1638" y1="676" x2="1700" y2="706" stroke="#6fb2ff" stroke-width="2.8" marker-end="url(#a)"/>
+<text x="48" y="952" font-family="Futura, Avenir Next, Trebuchet MS, Helvetica Neue, Arial, sans-serif" font-size="18.5" fill="#c4dceb" text-anchor="start" font-style="italic">Execution boundary:  APEX hands off a deep link; the customer completes the action on SBI’s own page (YONO / onboarding) — APEX never executes a write.</text>
+</svg>

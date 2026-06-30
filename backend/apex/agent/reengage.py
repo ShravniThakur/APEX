@@ -1,4 +1,4 @@
-"""Scheduled re-engagement of WAIT decisions (APEX_README §6 — ethical timing).
+"""Scheduled re-engagement of WAIT decisions (ethical timing).
 
 A `wait` is a deliberate pause, not a dead end. When APEX detects a vulnerable or sensitive
 moment (a medical event, severe stress) the gate returns `wait` — it does NOT act immediately,

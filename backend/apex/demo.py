@@ -1,4 +1,4 @@
-"""'Simulate 3 months of activity' demo mechanic (APEX_README §12).
+"""'Simulate 3 months of activity' demo mechanic.
 
 Seeds ONE customer's three months of synthetic activity — the seam where SBI's internal
 data would start flowing — then scores, detects, and reasons for just that customer. This

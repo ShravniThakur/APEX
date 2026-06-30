@@ -1,4 +1,4 @@
-"""Prompt construction for Analyser-mode LLM calls (APEX_README §2 philosophy).
+"""Prompt construction for Analyser-mode LLM calls (behavioral philosophy).
 
 The Analyser's act/wait/escalate decision, the eligibility checks, and the ethical restraint are
 all deterministic code (guardrails.py). The LLM's *only* job is, given a pre-vetted shortlist of
@@ -69,7 +69,7 @@ def build_select_prompt(payload: dict) -> str:
 
 
 def build_reengage_prompt(payload: dict) -> str:
-    """The follow-up after a deliberate WAIT (APEX_README §6). A while ago APEX detected a
+    """The follow-up after a deliberate WAIT. A while ago APEX detected a
     sensitive moment and chose NOT to reach out. Now the acute window has passed, so it offers a
     single warm, product-free check-in — never naming the sensitive event, never pushing anything."""
     c = payload["customer"]

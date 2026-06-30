@@ -14,5 +14,10 @@ backend/generated_manifest.json
 backend/apex/ml/artifacts/
 backend/data/
 
+# Local-only docs (kept out of git; README.md, TESTING.md and docs/ are pushed)
+/DEMO.md
+/PPT_CONTENT.md
+backend/WALKTHROUGH.md
+
 # OS
 .DS_Store
