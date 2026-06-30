@@ -2,15 +2,15 @@
 
 **SBI Hackathon (GFF 2026) · Agentic AI for Customer Acquisition, Digital Adoption & Digital Engagement**
 
-> This document is the complete content for the ideathon deck. It is organised as slides. Each slide has a **headline**, the **on-slide content** (what the audience reads), and **speaker notes** (what you say / Q&A ammunition). It is intentionally exhaustive — cut to fit your time budget; the priority order is marked.
+> This document is the complete content for the ideathon deck. It is organised as slides. Each slide has a **headline**, the **on-slide content** (what the audience reads), and **speaker notes** (what you say / Q&A ammunition). It is intentionally exhaustive — cut to fit your time budget.
 >
-> **Structure:** Part A — The Idea & Why It Wins · Part B — Production Architecture & Scalability (full layer-by-layer) · Part C — The Prototype (tech stack + demo decisions).
+> **Structure:** Part A — The Idea · Part B — Production Architecture & Scalability (full layer-by-layer) · Part C — The Prototype (tech stack + demo decisions).
 >
 > **The single sentence to anchor everything:** *APEX is one AI agent that guides new customers to the right SBI product, then — once it has their data — becomes an analyser that understands their financial life and intervenes at the right moments, and is reachable any time as a financial concierge.*
 
 ---
 
-# PART A — THE IDEA & WHY IT WINS
+# PART A — THE IDEA
 
 ---
 
@@ -26,7 +26,7 @@
 
 ---
 
-## Slide 2 — The Problem (the real one, not the obvious one) · PRIORITY
+## Slide 2 — The Problem
 
 **Banks already have the products. People still don't use them. Why?**
 
@@ -40,7 +40,7 @@ The gap isn't discovery or UX. It's **behavioral**:
 
 ---
 
-## Slide 3 — The Behavioral Philosophy (the actual differentiator) · PRIORITY
+## Slide 3 — The Behavioral Philosophy
 
 **Nine principles. Every design decision in APEX follows from these.**
 
@@ -58,7 +58,7 @@ The gap isn't discovery or UX. It's **behavioral**:
 
 ---
 
-## Slide 4 — The Solution: One Agent, Three Modes · PRIORITY
+## Slide 4 — The Solution: One Agent, Three Modes
 
 **Not three agents. One reasoning core, three trigger-gated modes, sharing the same memory and data layer.**
 
@@ -74,7 +74,7 @@ The gap isn't discovery or UX. It's **behavioral**:
 
 ---
 
-## Slide 5 — Differentiator: The Ethical Guardrail for Vulnerable Moments · PRIORITY
+## Slide 5 — The Ethical Guardrail for Vulnerable Moments
 
 **Never sequence: detect vulnerability → push product.**
 
@@ -90,7 +90,7 @@ The gap isn't discovery or UX. It's **behavioral**:
 
 ---
 
-## Slide 6 — Differentiator: The Graduated Authority Model
+## Slide 6 — The Graduated Authority Model
 
 **The agent never holds open-ended authority — only what's explicitly granted at each level. Every action is logged and explainable.**
 
@@ -103,13 +103,13 @@ The gap isn't discovery or UX. It's **behavioral**:
 
 ---
 
-## Slide 7 — Differentiator: Wrapper, Not Backend Rewrite · PRIORITY
+## Slide 7 — Wrapper, Not Backend Rewrite
 
 **APEX never touches or modifies SBI's Core Banking System (CBS). It reasons, explains, and decides. SBI executes.**
 
 - SBI's CBS remains the **sole source of truth** for balances, transactions, account state.
 - APEX holds only a synced **read** for reasoning, plus its own **audit log** of signals, decisions, and outcomes — never a parallel financial ledger.
-- Execution (moving money, opening an account) always happens inside YONO / SBI's existing systems, via a **deep link**, pre-filled where the page supports it.
+- Execution (moving money, opening an account) always happens inside YONO / SBI's existing systems; APEX hands off via a **deep link to exactly the right page/step**, and the customer completes the action there.
 
 **Why this is a deliberate strength, not a limitation:**
 > The hard, defensible part of agentic AI in banking is the *reasoning, restraint, and judgment* — deciding whether, when, and how to act. Execution is comparatively trivial; banks already do it flawlessly. Owning execution would mean re-solving a solved problem while adding risk.
@@ -122,7 +122,7 @@ The gap isn't discovery or UX. It's **behavioral**:
 
 **No illegal data. No ad infrastructure. No purchased prospect lists.**
 
-- **Tier 1 — True stranger.** Arrives via an existing channel (branch referral, search, word of mouth). Guide mode runs onboarding from scratch, determines the right account type, documents, and language, then constructs a **specific deep link** into SBI's real onboarding flow (e.g. `sbi.com/open-account?type=savings&name=Rohan&lang=hi`) — SBI's page reads the parameters and self-fills. APEX never fills or submits a form.
+- **Tier 1 — True stranger.** Arrives via an existing channel (branch referral, search, word of mouth). Guide mode runs onboarding from scratch — determines the right account type, the documents needed, and the language — then hands off with a **deep link to exactly the right official SBI onboarding page**. The customer completes SBI's own form there; **APEX never pre-fills, fills, or submits it.** The value is *arriving at the right page already understood* — nothing left to figure out — not auto-population.
 - **Tier 2 — Mid-onboarding drop-off.** Customer abandoned KYC. Internal SBI data, no privacy issue (they gave it for this exact purpose). Guide conversationally identifies why they stopped and routes them back to the exact step — not a restart from zero.
 - **Tier 3 — Existing dormant account.** Analyser detects dormancy and intervenes via the same graduated-authority model.
 
@@ -145,7 +145,7 @@ The gap isn't discovery or UX. It's **behavioral**:
 
 ---
 
-## Slide 10 — Why an Agent, Not a Rule Engine or a Single LLM Call · PRIORITY
+## Slide 10 — Why an Agent, Not a Rule Engine or a Single LLM Call
 
 **Rejected: signal → one LLM call → output. (That's inference with a trigger, not an agent.)**
 
@@ -170,7 +170,7 @@ The gap isn't discovery or UX. It's **behavioral**:
 
 ---
 
-## Slide 11 — Architecture Overview (the map) · PRIORITY
+## Slide 11 — Architecture Overview
 
 **One coherent system, seven layers — each layer cheaper than the next, which is what makes it scale.**
 
@@ -188,7 +188,7 @@ The gap isn't discovery or UX. It's **behavioral**:
 
 ---
 
-## Slide 12 — Layer 1: The Data Substrate (what exists) · PRIORITY
+## Slide 12 — Layer 1: The Data Substrate
 
 **The system of record APEX reasons over — read-only. SBI's CBS is the sole source of truth.**
 
@@ -203,17 +203,17 @@ The gap isn't discovery or UX. It's **behavioral**:
 
 ---
 
-## Slide 13 — Layer 2: The ML Scoring Layer (interpretation) · PRIORITY
+## Slide 13 — Layer 2: The ML Scoring Layer
 
 **Turn raw data into a few calibrated scores per customer, so the agent reasons on "stress = 0.81," never on raw transactions.**
 
 | Score | Answers | Type |
 |---|---|---|
 | **Stress** | Under financial strain right now? | Supervised (gradient-boosted trees) |
-| **Churn / dormancy** | Disengaging — and how far along? | Supervised (decay-trend features) |
+| **Churn / attrition** | About to leave the bank? | Supervised (account & behavioural features) |
+| **Engagement decay** | Opening the app less? | Trend heuristic over login history |
 | **Anomaly** | Is this event unusual *for this customer*? | Unsupervised (per-customer baseline) |
-| *+ Similarity* | "Customers like this responded better to a 4-day wait" | Embedding / cosine |
-| *+ Confidence* | How sure are we? | **Derived** (distance from decision boundary — not a 5th model) |
+| *+ Confidence* | How sure are we? | **Derived** (distance from decision boundary — not a separate model) |
 
 **Why ML and not just rules:** stress and decay are **multi-signal patterns relative to a customer's own baseline** — no single threshold captures "spending velocity rising *while* balance drops, *for this person*." Where a clean rule suffices (e.g. "no transaction for 90 days = dormant"), APEX uses a rule. The mix is deliberate, not maximalist.
 
@@ -223,7 +223,7 @@ The gap isn't discovery or UX. It's **behavioral**:
 
 ---
 
-## Slide 14 — Layer 3: The Signal Detection Layer (the gate) · PRIORITY
+## Slide 14 — Layer 3: The Signal Detection Layer
 
 **A cheap, mostly rule-based check that decides *whether the expensive agent runs at all* for a customer this cycle.**
 
@@ -239,7 +239,7 @@ The gap isn't discovery or UX. It's **behavioral**:
 
 ---
 
-## Slide 15 — Layer 4: The Decision Gate (judgment) · PRIORITY
+## Slide 15 — Layer 4: The Decision Gate
 
 **Per customer, code decides — then the LLM picks the best fit and writes it.**
 
@@ -254,7 +254,7 @@ The gap isn't discovery or UX. It's **behavioral**:
 
 ---
 
-## Slide 16 — Layer 5: Three Modes, One Core (context)
+## Slide 16 — Layer 5: Three Modes, One Core
 
 **It's not three agents. The three modes share one **data substrate + product/eligibility logic + ethical guardrail** — what changes is the *trigger*, the *starting context*, and the *technique* best suited to each.**
 
@@ -262,7 +262,7 @@ The gap isn't discovery or UX. It's **behavioral**:
 |---|---|---|---|---|
 | **Guide** | Absence of data | Catalogue, real document lists, and live application-lookup — via tools | Tool-calling agent (grounded onboarding; spots drop-offs) | APEX website |
 | **Analyser** | A batch-computed signal | The whole customer — real data + history, all signals at once | Per-customer code gate + LLM relevance pick | Email (proto) / WhatsApp-SMS (prod) |
-| **Concierge** | The customer asks | Scoped to the question ("can I afford this?" → balance + stress only) | Tool-calling agent (computes real answers) | APEX website |
+| **Concierge** | The customer asks | Scoped to the question ("can I afford this?" → balance + income only) | Tool-calling agent (computes real answers) | APEX website |
 
 **Concierge "code disposes" too.** When a customer asks "what should I get?", Concierge doesn't freelance — it calls a `recommend_product` tool that runs the **same routing + eligibility + guardrail gate as the Analyser** and returns only vetted products (eligible, not already held, ethically cleared). The LLM phrases; code decides the product — the same principle, applied to all modes.
 
@@ -277,11 +277,41 @@ The gap isn't discovery or UX. It's **behavioral**:
 
 ---
 
-## Slide 17 — Layer 6: The Execution Boundary (the wrapper)
+## Slide 16B — Inside Guide & Concierge: The Tool-Calling Loop
+
+**The reactive modes don't get their data stuffed into a prompt — they *fetch it on demand*. The cleanest way to see all three modes is to ask: how does the LLM get its data?**
+
+| Mode | How it gets data | Control flow |
+|---|---|---|
+| **Guide** | Fetched on demand via tools | A loop (LLM decides what to call) |
+| **Concierge** | Fetched on demand via tools | A loop (LLM decides what to call) |
+| **Analyser** | Gathered up-front by code, gated by code | A fixed line (no graph) |
+
+**The loop itself — where LangGraph earns its keep.** Two nodes that cycle:
+
+```
+   agent (LLM thinks)  ⇄  tools (run DB lookups)
+   ── emits tool calls? ── yes → run tools, append results, loop back
+                        ── no  → that's the final answer → end
+```
+
+The number of loops isn't fixed: the LLM can fetch balance, realise it also needs spending, fetch again, *then* answer. **That unpredictable, LLM-decided path is exactly what a graph is for** — unlike the Analyser, whose path is fully knowable, so it needs no graph at all. A runaway guard: after `MAX_TOOL_ROUNDS` (4) the agent is forced to answer (tools off), and a `GraphRecursionError` is caught and turned into a graceful "couldn't work that out" reply, never a crash.
+
+**The two tool menus (each call is a real DB query, never a guess):**
+- **Concierge** (existing customer, "can I afford this?") — `get_balance`, `get_spending`, `check_affordability`, `get_holdings`, `list_products`, `recommend_product`. The instruction is blunt: *never guess a number — if a tool gives it to you, use it.*
+- **Guide** (new / prospective, zero banking data) — `list_products`, `get_product_details`, `get_required_documents` (real KYC list, grounded in code), and `lookup_application` — **the agentic core**: live drop-off state from the `APPLICATIONS` table, the one thing prompt-injection of a catalogue structurally cannot know. This is why Guide *moved from context-injection to tools*.
+
+**The structural safety point (worth stating to judges):** every tool takes a `customer_id` **injected from the authenticated session, not from the LLM.** The model can ask for "balance," never "balance for customer X" — so Concierge **cannot read another customer's money**, by construction, not by prompt discipline.
+
+**Speaker notes:** This is the slide that makes "tool-calling agent" (named on Slides 16 and 27) concrete. Two things to land: (1) the graph exists *only* where the path is genuinely unpredictable (Guide/Concierge), and the Analyser is *deliberately not* a graph — same honesty as removing the fake critique loop (Slide 15); (2) the `customer_id`-from-session detail is a real security guarantee — the same "code disposes" discipline as the decision gate, applied to data access. If asked "why is Guide a full agent and not just a prompt?": because whether you're a mid-onboarding drop-off is *live state*, and only a tool call can read it.
+
+---
+
+## Slide 17 — Layer 6: The Execution Boundary
 
 **Every action APEX takes resolves to exactly one of three safe things. It never writes to CBS.**
 
-- **Deep link (Mechanism B)** — SBI's own page reads URL parameters and self-fills; the customer's tap *on SBI's page* executes the action. APEX never touches the backend.
+- **Deep link** — APEX hands off with a link to exactly the right page/step on SBI's own site; the customer completes it *on SBI's page*. APEX never pre-fills the form or touches the backend — the value is routing to the right place already understood, not auto-filling it.
 - **Standing rule** — the customer sets up a rule **once** on SBI's own infrastructure (e.g. MOD/Auto-Sweep: real ₹50,000 trigger, ₹35,000 floor); SBI then runs it every time the condition is met. APEX's role shrinks to detect-and-explain.
 - **Pure information** — no action at all (Level 1 insight).
 
@@ -291,23 +321,23 @@ The **graduated authority model** (Levels 1–3 buildable, Level 4 future-state)
 
 ---
 
-## Slide 18 — Layer 7: The Post-Decision Flow (closing the loop)
+## Slide 18 — Layer 7: The Post-Decision Flow
 
 **After the gate says "act," five steps — not one.**
 
 1. **Generation** — the decision becomes customer-facing text, in the customer's language, behavioral-philosophy-compliant.
-2. **Validation** — a rule-based guardrail pass on the *generated text*: no jargon leak, no recommending a product eligibility didn't confirm, no ethical-timing violation. A safety net on generation, not a new ML model — **defense in depth** after the decide-gate.
+2. **Validation** — two checks, defense in depth on top of the decide-gate: (a) the chosen product **must** be one the gate already approved, else it falls back to the top-ranked option — so the LLM can never smuggle in an unvetted, ineligible, or ethically-locked product; and (b) a rule-based scan of the generated text (no jargon leak, no scam-shaped phrasing, no ethical-timing violation). A safety net on generation, not a new ML model.
 3. **Delivery** — by mode: Analyser → email/WhatsApp; Guide/Concierge → rendered directly in the website thread.
-4. **Deep-link construction** — build the Mechanism B link from the product's URL template, pre-filled where supported, and attach it.
-5. **Logging + outcome capture** — full trace → `DECISIONS`/`ACTIONS`; whatever the customer does later (clicked / dismissed / ignored / completed) → `OUTCOMES`, feeding the dismissal-count memory.
+4. **Deep-link construction** — resolve the right official SBI page (Tier 1: the product's opening page; Tier 2: the step to continue) and attach that link. No form pre-fill — the customer completes it on SBI's page.
+5. **Logging + outcome capture** — full trace → `DECISIONS`/`ACTIONS`; whatever the customer does later (clicked / dismissed / ignored / completed) → `OUTCOMES`, feeding the suppression memory (Slide 22): `completed` creates a holding (held-filter), `dismissed` the back-off count.
 
 **Plus a "Why am I seeing this?" layer:** a second, constrained generation that explains a decision using only facts the customer already knows — and **declines to elaborate if the trigger was a vulnerability signal**, so they can't reverse-engineer that something sensitive was detected.
 
-**Speaker notes:** Two guardrail passes (the decide-gate *and* output validation) = defense in depth. The explanation layer makes "on the customer's side" concrete and clickable — transparency that still respects the same restraint as everything else.
+**Speaker notes:** Two guardrail passes (the decide-gate *before* any text exists, and output validation *after*) = defense in depth — the product pick is hard-checked against the gate-approved set, so neither the decision nor the product can drift. The explanation layer makes "on the customer's side" concrete and clickable — transparency that still respects the same restraint as everything else.
 
 ---
 
-## Slide 19 — Scalability: The Architecture IS a Cost Funnel · TOP PRIORITY
+## Slide 19 — Scalability: The Architecture IS a Cost Funnel
 
 **"How does this work for SBI's 50 crore customers?" — The expensive part never runs on the whole base.**
 
@@ -337,12 +367,12 @@ Layer 2: score everyone   →  Layer 3: detect signals  →  Layer 4: decide (co
 
 ---
 
-## Slide 21 — Production: Data Access & Ingestion · PRIORITY
+## Slide 21 — Production: Data Access & Ingestion
 
 **APEX is deployed *by SBI itself*, as an internal system — not a third party, no Account Aggregator.**
 
 - **Data access** — direct **read-only** access to CBS (Layer 1), the same kind any internal SBI analytics tool has. APEX never writes to CBS.
-- **Account-level events → webhooks.** SBI's system notifies APEX the instant an account is created/activated — low-frequency, genuinely real-time. This fires the Guide→Analyser transition (bounded by SBI's actual KYC timing, which APEX doesn't control or accelerate).
+- **Account- & product-level events → webhooks.** SBI's system notifies APEX the instant an account is created/activated, a **product is adopted**, or KYC completes — all *low-frequency* state changes, genuinely real-time. Account creation fires the Guide→Analyser transition (bounded by SBI's actual KYC timing, which APEX doesn't control); a product-adoption event updates APEX's read so it stops nudging that product (Slide 22's held-filter). *(Since APEX is internal, these are really SBI's own internal event emissions — "webhook" is the analogy; both sides are SBI infrastructure, so it's simpler than any external integration.)*
 - **Transaction-level data → streaming/batch sync, not per-transaction webhooks.** At hundreds of millions of daily transactions, this is a production-grade event-streaming pipeline (Kafka-style) / periodic internal feed — never a lightweight HTTP callback per transaction.
 
 **Speaker notes:** Be precise about the distinction — it signals you understand scale. Account events are true webhooks; transaction volume is a streaming/CDC problem. Latency is acceptable because Analyser is *intentionally* not real-time (it waits, by design); Concierge gets freshness via on-demand scoring for the single customer asking.
@@ -354,7 +384,10 @@ Layer 2: score everyone   →  Layer 3: detect signals  →  Layer 4: decide (co
 **The system improves by reading its own audit log — not (yet) by retraining on thin data.**
 
 - Every outreach and its outcome (clicked / dismissed / ignored / completed) is logged (Layer 7).
-- A **per-category dismissal count** (read from that log) is **causal**: the deterministic gate strips any category a customer has dismissed ≥2× from their safe set, so it's simply never offered again — *"this customer has dismissed two investment nudges; stop offering investments."* Alongside it, a **30-day product cooldown** (also read from the log) holds back any product recommended recently. Both are visible and explainable, not silent score adjustments. (Today the count is flat; recency-weighting is a planned refinement.)
+- **Three causal suppressions, all read from that log — not silent score tweaks:**
+  - **Held-filter (adoption → permanent).** When a customer *adopts* a product, a holding exists, so it's **never recommended again** — full stop. In the demo the adopt-click stands in for SBI's **product-adoption event** (Slide 21); in production that event is the source. This is the `completed` outcome's real effect (it creates a holding — *not* the dismissal count).
+  - **Per-category dismissal count (≥2× → back off).** The gate strips any category a customer has dismissed twice from their safe set — *"dismissed two investment nudges; stop offering investments."* (Today flat; recency-weighting is a planned refinement.)
+  - **30-day product cooldown.** Any product recommended recently is held back, so the *same* nudge can't repeat within the window.
 - **At production scale**, the accumulated outcomes also support standard MLOps for the trained models — retraining cadence, drift detection, A/B testing, a model registry.
 
 **Speaker notes:** The honest nuance, worth stating: full retraining needs *enough* real outcomes to be meaningful. The dismissal-count mechanism is the answer that works from day one (and it's already causal — it changes decisions); retraining is the answer once volume accumulates. Don't over-claim retraining on launch.
@@ -363,9 +396,10 @@ Layer 2: score everyone   →  Layer 3: detect signals  →  Layer 4: decide (co
 
 ## Slide 23 — Production: Identity, Security & Compliance
 
-**The wrapper principle applies to identity too.**
+**The wrapper principle applies to identity, the model, and the data.**
 
 - **Identity** — SBI-delegated login (SSO-style handoff): the customer logs into YONO/SBI as normal; SBI redirects to APEX with a signed token ("this is customer X, authenticated by us"). **APEX never sees a password.** Same pattern as "Login with Google."
+- **The LLM runs *inside* SBI.** In production APEX self-hosts an **open-weight** model (the same Llama family the prototype runs on Groq), so customer data and the prompts built from it **never leave SBI's perimeter** to any third-party API — non-negotiable for a bank under RBI/DPDP data-residency rules. The demo can use a hosted API only because it runs on *synthetic* data. (Full production stack: Slide 24B.)
 - **Audit & explainability as a compliance asset** — the decisions/actions/outcomes log (Layer 7) isn't just memory; it directly satisfies the regulatory requirement that every automated action be logged and explainable (RBI / DPDP Act).
 - **PII & access control** — strict, role-based, audited; APEX reads only what it needs, holds no parallel ledger.
 
@@ -385,7 +419,30 @@ Layer 2: score everyone   →  Layer 3: detect signals  →  Layer 4: decide (co
 
 ---
 
-## Slide 25 — Why One Agent, Not Multiple (defense slide)
+## Slide 24B — Production: Tech Stack
+
+**Same architecture as the prototype (Slide 27), production-grade components. The brain is identical; only the plumbing hardens — every box swaps a dev/managed-tier service for the SBI-hosted, scaled equivalent.**
+
+| Component | Prototype | Production |
+|---|---|---|
+| **LLM** | Groq API (`llama-3.3-70b`, open-weight) | **Self-hosted open-weight model inside SBI** (same Llama family) on GPU (vLLM/TGI) — customer data & prompts **never leave SBI's perimeter** |
+| **Speech-to-text** | Groq Whisper | **Self-hosted Whisper** on SBI infra — voice data stays in |
+| **Source data** | PostgreSQL (synthetic) | SBI's CBS via read-only feed; APEX's own operational store on a replicated/HA enterprise DB |
+| **Ingestion** | One-shot batch insert | Account/product **webhooks** + transaction **streaming** (Kafka/CDC) |
+| **ML scoring** | LightGBM + joblib, single run | Feature store + **model registry** + distributed batch scoring (Spark) + MLOps (retraining, drift) |
+| **Agent / API** | FastAPI, single process | Horizontally-scaled stateless workers + a queue for the Analyser batch; load-balanced |
+| **Outbound channel** | Resend email → sink | SMS / **WhatsApp Business API** (real telecom) |
+| **Identity** | "Sign in as" picker | SBI **SSO** (signed token; APEX never sees a password) |
+| **Frontend** | React + Vite (local) | Same code, hosted on SBI infra / CDN |
+| **Security posture** | Synthetic data, no PII | Everything inside SBI's perimeter — RBAC, audit, RBI/DPDP, data residency |
+
+**The non-negotiable one:** the **LLM and STT move in-house** — no real customer data ever touches a third party. We built on an **open-weight** model *precisely* so this is drop-in: same weights, same reasoning quality, only the hosting changes. A closed API-only model (GPT-4, etc.) would make this slide impossible.
+
+**Speaker notes:** This answers "is this actually deployable at a bank?" — yes, because nothing exotic is required: open-weight LLM self-hosting (standard now), Kafka, a feature store, SSO, WhatsApp Business API — all proven enterprise components. Land the deliberate choice: Groq in the demo is fine *only* because the demo runs on synthetic data; the moment it's real customer data, the model runs inside SBI. The reasoning, the models, and the code are unchanged between the two columns.
+
+---
+
+## Slide 25 — Why One Agent, Not Multiple
 
 **"One agent" = one reasoning core, three trigger-gated modes — not mode-blindness.**
 
@@ -401,7 +458,7 @@ Layer 2: score everyone   →  Layer 3: detect signals  →  Layer 4: decide (co
 
 ---
 
-## Slide 26 — What We Actually Built · PRIORITY
+## Slide 26 — What We Actually Built
 
 **A working end-to-end prototype of all three modes — not slideware.**
 
@@ -421,8 +478,8 @@ Layer 2: score everyone   →  Layer 3: detect signals  →  Layer 4: decide (co
 **Backend (Python)**
 - **API:** FastAPI + Uvicorn (read surface for the dashboard + pipeline triggers).
 - **Data:** PostgreSQL via SQLAlchemy 2.0 (12 tables); `psycopg2`.
-- **Agent orchestration:** **LangGraph** (the Analyser flow and the Concierge tool-calling loop).
-- **LLM:** **Groq** free tier — `llama-3.3-70b-versatile` for reasoning + message generation.
+- **Agent orchestration:** **LangGraph** — the **Guide and Concierge** tool-calling loops (LLM-driven control flow). The Analyser is deliberately *not* a graph: it's a deterministic code gate + a single Groq call (one knowable path, so no graph needed).
+- **LLM:** **Groq** free tier — `llama-3.3-70b-versatile`, an **open-weight** model, for reasoning + message generation. Open-weight is deliberate: in production SBI **self-hosts the same model** so real customer data never leaves the bank (Slides 23, 24B). Groq is fine for the demo because the data is synthetic.
 - **Speech-to-text:** Groq **Whisper** (`whisper-large-v3`); text-to-speech is browser-side (Web Speech API).
 - **ML:** **LightGBM** (falls back to scikit-learn `HistGradientBoosting`), pandas, joblib for artifacts.
 - **Email:** **Resend** (real delivery, routed to a demo sink in non-prod).
@@ -433,18 +490,18 @@ Layer 2: score everyone   →  Layer 3: detect signals  →  Layer 4: decide (co
 
 **Free/real-by-design:** LLM (Groq free tier), STT (Whisper), TTS (browser), email (Resend free tier), in-browser voice (mic/speaker). No paid telecom needed for the prototype.
 
-**Speaker notes:** Emphasise these are *real, functional* services on free tiers — the reasoning and voice pipeline are genuinely live, not mocked. Map the stack onto Part B: SQLAlchemy/Postgres = Layer 1, LightGBM = Layer 2, the detectors = Layer 3, LangGraph + Groq = Layer 4–5, Resend + tracking links = Layer 7.
+**Speaker notes:** Emphasise these are *real, functional* services on free tiers — the reasoning and voice pipeline are genuinely live, not mocked. Map the stack onto Part B: SQLAlchemy/Postgres = Layer 1, LightGBM = Layer 2, the detectors = Layer 3, the **Layer 4 decision gate is plain deterministic code + one Groq call** (no graph), **LangGraph + Groq powers the Layer 5 Guide/Concierge** tool-calling loops, Resend + tracking links = Layer 7.
 
 ---
 
-## Slide 28 — The Data Substrate, As Built (Layer 1 concretely)
+## Slide 28 — The Data Substrate, As Built
 
 **12 tables, two groups — mirroring the architecture (Slide 12).**
 
 - **Substrate (7 tables)** — "SBI's world," which APEX only reads: `PRODUCTS`, `CUSTOMERS`, `ACCOUNTS`, `TRANSACTIONS`, `APP_SESSIONS`, `APPLICATIONS`, `HOLDINGS`.
 - **Operational (5 tables)** — APEX's own brain & audit log: `SCORES`, `SIGNALS`, `DECISIONS`, `ACTIONS`, `OUTCOMES`. These chain together — a score fires a signal, which triggers a decision, which produces an action, which gets an outcome. *That chain is the reasoning trace.*
 
-**Product catalogue:** 28 SBI products across 6 categories, tiered `full` (demo-exercised, machine-checkable eligibility) vs `reference` (real facts so Concierge answers accurately without hallucinating).
+**Product catalogue:** 28 SBI products across 7 categories (accounts, deposits, investments, loans, insurance, payments, cards), tiered `full` (24 — demo-exercised, machine-checkable eligibility) vs `reference` (4 — real facts so Concierge answers accurately without hallucinating).
 
 **Signals:** 17 detectors (e.g. `idle_balance`, `manual_recurring_payment`, `life_event`, `dormancy`, `cash_flow_stress`, `churn_risk`) — pure rules or thin wrappers over an ML score — **plus** a conversational `stated_intent` signal created from Concierge chats (Slide 16).
 
@@ -452,9 +509,9 @@ Layer 2: score everyone   →  Layer 3: detect signals  →  Layer 4: decide (co
 
 ---
 
-## Slide 29 — The ML Scoring Layer, As Built (Layer 2 concretely)
+## Slide 29 — The ML Scoring Layer, As Built
 
-**5 scores per customer: 3 trained models + 2 heuristics.**
+**4 scores per customer: 2 trained models + 2 heuristics.**
 
 | Score | Answers | How (in the prototype) |
 |---|---|---|
@@ -465,11 +522,11 @@ Layer 2: score everyone   →  Layer 3: detect signals  →  Layer 4: decide (co
 
 **The one core idea — train/serve parity:** the *same feature functions* run in training and in serving (one shared shaping function builds both the model's training history and the demo's synthetic customers). No train/serve skew.
 
-**Speaker notes:** Be explicit about real vs synthetic: churn trains on real Kaggle data, stress on synthetic (no real stress-labelled ground truth exists) — real data where it exists, synthetic only where it must be. And own the deliberate omission: we **don't** ship a "propensity to buy" score, because inferring product desire from a demographic profile is exactly the segment-based recommending our philosophy rejects. Relevance comes from a **real fired signal** (a present need); explicit preference comes from **what the customer tells Concierge** — never from a profile.
+**Speaker notes:** Be explicit about real vs synthetic: churn trains on real Kaggle data, stress on synthetic (no real stress-labelled ground truth exists) — real data where it exists, synthetic only where it must be. **In production both train on SBI's own historical data — but differently, and this is worth saying because it shows you understand the labelling problem, not just "throw data at it":** churn has a *natural label* (did the customer attrite/go dormant — straight from history), so it's the same model on SBI's real customers instead of Kaggle. Stress has *no* natural label even at SBI — which is exactly why the prototype is synthetic — so in production it trains via **proxy / weak supervision**: SBI's history already contains the downstream distress events stress causes (bounced auto-debits, overdrafts, breaking an FD early, an emergency personal loan, missed EMIs), and those become the labels. So synthetic was the hackathon stand-in; SBI's own adverse-event history is the real training signal — the stress model is *not* synthetic forever. And own the deliberate omission: we **don't** ship a "propensity to buy" score, because inferring product desire from a demographic profile is exactly the segment-based recommending our philosophy rejects. Relevance comes from a **real fired signal** (a present need); explicit preference comes from **what the customer tells Concierge** — never from a profile.
 
 ---
 
-## Slide 30 — Demo Decisions: What's Simulated, and Why (the honesty slide) · PRIORITY
+## Slide 30 — Demo Decisions: What's Simulated, and Why
 
 **One principle: simulate the *handoff*, never the *intelligence.* Every simulated piece is a seam where SBI's own infrastructure would hand APEX something.**
 
@@ -479,7 +536,7 @@ Layer 2: score everyone   →  Layer 3: detect signals  →  Layer 4: decide (co
 | **"Simulate 3 months" button** | Batch-inserts one customer's 3 months of activity on click | Stands in for SBI's internal system notifying APEX an account went live (a webhook in production). The *only* thing faked is "data starts existing" |
 | **Batch insert, not Kafka** | Direct DB write for the one-time seed | Correct for a finite one-time seed; Kafka would be unjustified complexity. Streaming is the *production* answer for continuous syncs (Slide 21) — named, not pretended |
 | **Email instead of WhatsApp/SMS** | Real email via Resend, routed to a sink | WhatsApp/SMS need paid telecom with no free tier. The reasoning/detection/content is identical; only the channel differs — a deliberate cost decision |
-| **Phone + OTP instead of SSO** | Lightweight identity tied to a synthetic customer | Demonstrates *delegated identity* without claiming a real SBI SSO integration exists (Slide 23) |
+| **"Sign in as" picker instead of SSO** | A dropdown that signs you in as a synthetic customer (plus a phone field where any number resumes a seeded drop-off — no real OTP) | Demonstrates *delegated identity* without claiming a real SBI SSO integration exists (Slide 23) |
 | **On-demand pipeline runs** | Score/detect/reason fire instantly on the demo trigger | Demo pacing — in production this is a nightly sweep + on-demand Concierge |
 
 **Speaker notes:** This is the slide that disarms the "what's fake here?" question before it's asked. The pattern is consistent: it's never a random patchwork of shortcuts — it's *one principle applied everywhere.* Recite the one-liner: "Everything hard is fully real; the only things simulated are the handful of seams where real bank integration genuinely isn't possible at hackathon scale: data arriving, time passing, and login."
@@ -500,20 +557,21 @@ Then: open the **ops dashboard** to show the reasoning trace; click the **email 
 
 ---
 
-## Slide 32 — Prototype vs Production (one consolidated view)
+## Slide 32 — Prototype vs Production
 
 **Guiding rule: simulate the plumbing, keep the brain real.**
 
 | Concern | Prototype (built) | Production |
 |---|---|---|
 | Data source | Synthetic generator | Read-only feed from SBI's CBS |
-| Data arrival | One-shot batch insert | Account webhooks + transaction streaming (Kafka) |
+| Data arrival | One-shot batch insert | Account/product webhooks + transaction streaming (Kafka) |
 | Cadence | On-demand "recompute fresh" | Nightly sweep + on-demand Concierge |
 | Dedup / suppression | Wipe & recompute (repeatable demo) | Incremental: signal lifecycle + cooldown + outcome back-off |
-| Models | Stress synthetic; churn real | Periodic retraining + drift monitoring (full MLOps) |
+| Models | Stress synthetic; churn real (Kaggle) | Both on SBI history — churn via its natural label, stress via proxy labels (real distress events); periodic retraining + drift monitoring (full MLOps) |
 | Channels | Real email to a sink; SMS/voice simulated | Real SMS/WhatsApp/voice telecom |
+| LLM / STT hosting | Groq API (managed) — safe, data is synthetic | Self-hosted open-weight model inside SBI — real data never leaves the perimeter |
 | Scale | One process, in memory | Millions → distributed, queues, prioritisation |
-| Identity | Phone+OTP "sign in as" | SSO handoff from SBI's login |
+| Identity | "Sign in as" picker (no real OTP) | SSO handoff from SBI's login |
 | PII/security | Synthetic, no real PII | RBAC, audit, RBI/DPDP compliance |
 
 **Never faked, even now:** the reasoning (real LLM + code gate), the ethics, the voice pipeline (Whisper), and one real channel (email).
@@ -563,3 +621,61 @@ Then: open the **ops dashboard** to show the reasoning trace; click the **email 
 - **"Where exactly is the LLM, and where is the code?"** → Code decides act/wait/escalate and builds the safe set (eligibility + every ethical rule). The LLM runs only on an `act`, and only to (a) pick the best-fit product from that already-vetted set and (b) write the message. We *had* a hypothesise→self-critique LLM loop and removed it — it was fed the same numbers the code gate already decided on, so it added cost and an illusion of reasoning, nothing causal. The leaner design is cheaper and more honest. (Slide 15.)
 - **"Can Concierge recommend something silly?"** → No longer — it calls `recommend_product`, which runs the same routing + eligibility + guardrail gate the Analyser uses, so it can't suggest something ineligible, already held, or inappropriate. The LLM phrases; code decides the product. (Slide 16.)
 - **"Isn't mining conversations for intent creepy?"** → It's the opposite of creepy *when done right*: an explicit, customer-voiced "I want to invest" is the customer pulling the product forward — the ideal. The guardrail is that a *disclosed vulnerability* (job loss, medical crisis) creates nothing and withdraws pending intents — we never turn distress into a sales trigger. Same ethical line, applied to conversation. (Slides 14, 16.)
+- **"Is your stress model just trained on synthetic/made-up data?"** → In the prototype, yes — there's no labelled stress data available to us. In production it trains on SBI's *own* history: churn has a natural label (did the customer leave), and stress uses **proxy labels** — the real distress events SBI already records (bounced auto-debits, overdrafts, breaking an FD early, emergency borrowing, missed EMIs). Synthetic was the hackathon stand-in; SBI's adverse-event history is the real training signal. (Slide 29.)
+- **"Are you sending customer financial data to a third-party LLM (Groq)?"** → In the demo, yes — but it's *synthetic* data, so there's zero exposure. In production, no: APEX self-hosts an **open-weight** model (the same Llama family) and Whisper *inside* SBI's own infrastructure, so real customer data and the prompts built from it never leave the bank's perimeter — required under RBI/DPDP data residency. We chose an open-weight model precisely so production self-hosting is drop-in, with identical reasoning. (Slides 23, 24B.)
+
+---
+
+## Appendix B — Diagram Suggestions (one visual per slide)
+
+**Design principle: build 4 "signature" visuals once, then reuse/recolor them** — don't draw 35 unique diagrams; you want visual coherence.
+1. **The Triad** — one brain, three modes (Guide / Analyser / Concierge).
+2. **The Layer Stack** — the 7 layers.
+3. **The Funnel** — 500M customers narrowing to the tiny acted subset.
+4. **The Perimeter** — a box labelled "SBI" with APEX inside it.
+
+**Colour code (keep consistent throughout):** blue = deterministic code · purple = LLM · green = SBI / inside-perimeter · red = the wrong/blocked path.
+
+**Invest the most polish in the three "hero" diagrams:** the Triad (Slide 4), the Layer Stack (Slide 11), the Funnel (Slide 19) — they recur most and carry the heaviest ideas.
+
+### Part A — The Idea
+- **Slide 1 (Title):** Wordmark + a small Triad. No data diagram.
+- **Slide 2 (Problem):** A shelf full of products, a person not reaching them, a wall of 4 labelled bricks between (lazy / illiterate / distrustful / momentary). → the gap is behavioral, not availability.
+- **Slide 3 (Philosophy):** Two-column "human truth → design response" mapping (show 3–4 rows visually). → every principle forces a design choice.
+- **Slide 4 (One Agent, Three Modes):** ★ **The Triad** — central brain, three modes radiating out, each tagged with its trigger + PS pillar, with a dial "gated by how much data APEX has." Signature diagram.
+- **Slide 5 (Ethical Guardrail):** Horizontal timeline: detect → [WAIT, few days] → insight (no product) → customer pulls forward. Above it, a red crossed-out "detect → push." → restraint over time.
+- **Slide 6 (Graduated Authority):** Rising staircase, 4 steps (L1→L4), x-axis = authority/effort, **L4 dashed/greyed** (future). → escalating, capped authority.
+- **Slide 7 (Wrapper):** ★ **The Perimeter** — APEX beside CBS; one-way "read-only" arrow in, "handoff/deep link" arrow out, thick wall "never writes." → reads only, never writes.
+- **Slide 8 (Acquisition Tiers):** Three funnels (stranger / drop-off / dormant) merging into Guide, each tagged with its data state.
+- **Slide 9 (Adoption):** 2×2 quadrant (investments / insurance / payments / mobile banking), each cell *signal → nudge*. → all four categories covered.
+- **Slide 10 (Agent vs Rules/LLM):** The "code disposes / LLM proposes" split — blue CODE box builds a vetted set → hands to purple LLM box that only picks + writes; flanked by rejected "rule-only" and "LLM-only."
+
+### Part B — Production Architecture
+- **Slide 11 (Architecture Overview):** ★ **The Layer Stack** (7 horizontal bands) with a funnel overlay narrowing downward. Master diagram.
+- **Slide 12 (Layer 1 Data):** Two table-groups side by side — Substrate (SBI's world) | Operational (APEX's log) — split by the read-only line; highlight the 3 key fields (channel, payee_id, sessions).
+- **Slide 13 (Layer 2 Scoring):** Many raw rows → funnel → 4 dials/gauges (stress 0.81, churn, decay, anomaly). → raw → few calibrated scores.
+- **Slide 14 (Layer 3 Signals):** A gate/filter: everyone flows in, only a few "fire" and pass through to wake the agent.
+- **Slide 15 (Layer 4 Decision Gate):** Flowchart: gather → `decide_customer` (code) → act/wait/escalate; on *act* → one LLM pick+compose. Show the safe-set subtraction (eligible − vuln-lock − dismissed − cooldown).
+- **Slide 16 (Three Modes, One Core):** The Triad with the shared core (data + eligibility + guardrail) highlighted in the center, plus a feedback arrow Concierge → Analyser (stated_intent).
+- **Slide 16B (Tool-Calling Loop):** The `agent ⇄ tools` cycle drawn as two nodes with the yes/no fork (purple LLM node, blue tools node), the two tool menus listed beside Guide/Concierge, and a small lock icon on `customer_id` (injected from session, not the LLM). Contrast inset: Analyser = a straight line, not a loop.
+- **Slide 17 (Execution Boundary):** The Perimeter — three outputs (deep link / standing rule / pure info) all stopping at the boundary line; SBI executes beyond it.
+- **Slide 18 (Post-Decision Flow):** 5-step pipeline (generate→validate→deliver→link→log) with the outcome → suppression → back-to-gate loop drawn as a cycle.
+- **Slide 19 (Cost Funnel):** ★ **The Funnel** with real numbers at each stage (500M scored → few % signal → gate → tiny LLM sliver). Most important technical visual.
+- **Slide 20 (Six Levers):** Annotate the *same funnel* with 6 numbered callouts showing where each lever applies. (Reuse, don't redraw.)
+- **Slide 21 (Ingestion):** Two pipes SBI → APEX: a thin pipe (webhooks — account/product events, low-freq) and a fat pipe (stream — transactions, Kafka).
+- **Slide 22 (Feedback Loop):** A cycle: outreach → outcome → 3 suppressions (held-filter / dismissal / cooldown) → back into the gate.
+- **Slide 23 (Identity/Security):** The Perimeter box with APEX + the self-hosted LLM inside it, SSO token entering, a sealed "no data leaves" boundary.
+- **Slide 24 (Channels):** A flow — cheap trigger (SMS/WhatsApp) → brings customer to → the interface (website). Small inset on WhatsApp free-window economics.
+- **Slide 24B (Production Tech Stack):** Two-column mapping (prototype box → production box) per component, with the production column wrapped in the green SBI perimeter and LLM/STT highlighted as "moved in-house."
+- **Slide 25 (Why One Agent):** Split-screen contrast — LEFT: 3 separate agents, guardrail duplicated ×3 (inconsistent); RIGHT: 1 core + 3 modes, one guardrail.
+
+### Part C — The Prototype
+- **Slide 26 (What We Built):** The Layer Stack lit up with ✓ checkmarks on what's real + small screenshots of the two web apps.
+- **Slide 27 (Tech Stack):** Logo grid mapped onto the layers (FastAPI, Postgres, LangGraph, Groq, LightGBM, React).
+- **Slide 28 (Schema as built):** The 12-table ER diagram, with the reasoning-trace chain highlighted: score → signal → decision → action → outcome.
+- **Slide 29 (ML as built):** The 4 scores tagged trained/heuristic + a small train/serve parity diagram (same feature functions feeding both training and serving).
+- **Slide 30 (What's Simulated):** The architecture diagram with simulated seams in red (data arrival, time, login) vs everything-real in green.
+- **Slide 31 (Live Demo):** Storyboard — 3 scenario cards (Aarav ✓act / Neha ✓act / Sunita ⏸wait) + the click-path arrows.
+- **Slide 32 (Proto vs Prod):** The table, with a "BRAIN UNCHANGED" band spanning both columns.
+- **Slide 33 (Roadmap):** Phase timeline — Now (read-only, L1–3) → Next (L4 write, frequency cap, prioritisation).
+- **Slide 34 (Closing):** Back to the Triad, single strong frame. Minimal.

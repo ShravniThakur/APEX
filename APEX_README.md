@@ -80,7 +80,7 @@ Three honest, explicitly bounded tiers. No illegal data, no ad infrastructure.
 
 Arrives via an existing channel — branch referral, search, word of mouth. Guide mode runs conversational onboarding from scratch. Through conversation, APEX determines the right account type, the relevant documents, and the customer's language preference.
 
-APEX never fills or submits a form. It constructs a specific deep link into SBI's real onboarding flow — e.g. `sbi.com/open-account?type=savings&name=Rohan&lang=hi` — and **SBI's own page reads those URL parameters and displays them already populated**, the same way a Google Maps link with `?destination=` pre-fills a search box. The browser does the filling, triggered by the link. APEX never touches SBI's backend or database. The value isn't routing — it's arriving at the right page, already understood, with nothing left to figure out.
+APEX never fills or submits a form. It constructs a **deep link to exactly the right official SBI onboarding page** — the right product, at the right step, for this person. The customer completes SBI's own form there; APEX never pre-fills it, and never touches SBI's backend or database. The value is **arriving at the right page already understood**: the conversation has settled the account type, the documents needed, and the language, so there's nothing left to *figure out* — even though the customer still fills SBI's form themselves. (URL-parameter pre-fill — "the page reads `?name=…&type=…` and self-populates" — was considered and dropped: it doesn't work against SBI's real pages, so APEX doesn't rely on it.)
 
 ### Tier 2 — Mid-onboarding drop-off
 
@@ -126,7 +126,7 @@ Timing matters as much as wording. Immediate contact after a sensitive transacti
 How the agent acts safely, without ever holding open-ended authority. Three levels are fully buildable within the wrapper architecture; one is explicitly future-state.
 
 - **Level 1 — Insight only.** No action. Pure information, zero effort required. *"Noticed some larger expenses recently — want me to check your savings cushion?"*
-- **Level 2 — One-tap confirm.** The agent prepares a specific action and hands off via a deep link into SBI's real system, pre-filled where supported. The customer's tap on SBI's own page is what executes it — APEX never touches SBI's backend. *"I can set up autopay for this bill — tap to confirm on YONO."*
+- **Level 2 — One-tap confirm.** The agent prepares a specific action and hands off via a deep link to the right place in SBI's real system. The customer's tap on SBI's own page is what executes it — APEX never touches SBI's backend. *"I can set up autopay for this bill — tap to confirm on YONO."*
 - **Level 3 — Standing rule, set up once.** The customer explicitly sets up a rule on SBI's side (e.g. auto-sweep idle balance above ₹50,000), via the same one-tap handoff as Level 2. After that, zero *repeated* effort — the rule executes on SBI's own infrastructure every time its condition is met. APEX's role becomes detection and notification: *"Your auto-sweep rule triggered today — here's why."*
 - **Level 4 — Autonomous execution with an undo window** *(future state, not built in the prototype)*. The agent executes a one-shot action directly, with a countdown window for the customer to undo. This genuinely requires SBI to grant scoped, audited write access to its backend — a deeper integration than a read-only wrapper provides. Framed honestly as the natural next phase once trust in the read-only system is established, not claimed in the current build.
 
@@ -139,7 +139,7 @@ The agent never has open-ended authority — only what's explicitly granted at e
 ## 8. Architecture: wrapper, not backend rewrite
 
 - APEX never touches or modifies SBI's core banking system (CBS).
-- APEX reasons, explains, and decides. The actual transaction always executes inside YONO or SBI's existing systems — APEX hands off via deep link, pre-filled where the target page supports it.
+- APEX reasons, explains, and decides. The actual transaction always executes inside YONO or SBI's existing systems — APEX hands off via a deep link to the right page/step, and the customer completes it there.
 - **SBI's CBS remains the sole source of truth** for balances, transactions, and account state. APEX only holds a synced read or cache for reasoning, plus its own audit log of signals, decisions, and outcomes — never a parallel financial ledger.
 - This makes APEX a low-risk, pilot-able addition for SBI, not a request to rebuild anything.
 
@@ -189,7 +189,7 @@ APEX is its own product, with a real website — both for the prototype and the 
 The mechanic that demonstrates the Guide-to-Analyser mode transition without requiring real SBI integration or mocking any SBI product page.
 
 1. **Conversation** — a new customer talks to APEX in Guide mode. APEX determines the right account type, language, and documents needed.
-2. **Handoff** — the real, specific SBI link is shown, pre-filled via URL parameters where supported. This is the actual onboarding action; nothing here is simulated.
+2. **Handoff** — the real, specific SBI link is shown — a deep link to exactly the right official page/step. This is the actual onboarding action; nothing here is simulated. (APEX never pre-fills or submits the form — the customer completes it on SBI's page.)
 3. **Demo control: "Simulate 3 months of activity"** — a button visible only in the demo dashboard, not part of the customer-facing experience.
 4. **On trigger** — a batch insert seeds `CUSTOMERS`, `ACCOUNTS`, `TRANSACTIONS`, and `APP_SESSIONS` with synthetic but schema-correct data: three months of realistic activity for one customer. No consent step here — APEX reads SBI's own data as an internal system, the same way any of SBI's internal tools would, not as a third party requesting access; see Section 9.
 5. **Signal detection runs immediately** — for demo pacing, rather than waiting for a nightly sweep.

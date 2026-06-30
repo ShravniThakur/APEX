@@ -1,8 +1,7 @@
 # APEX Backend — Plain-English Walkthrough
 
 A file-by-file explanation of the whole backend, in simple words. This is the *learning* doc
-(the "why" and "how it fits"). For setup/commands see [README.md](README.md); for the terse
-implementation specs see [../specs](../specs).
+(the "why" and "how it fits"). For setup/commands see [README.md](README.md)
 
 ## Contents
 
@@ -771,19 +770,19 @@ A single consolidated comparison, pulling together every demo/production distinc
 | Layer | **Demo (prototype)** | **Production** |
 |---|---|---|
 | **Data source** | Synthetic — generated `CUSTOMERS`/`ACCOUNTS`/`TRANSACTIONS`/`APP_SESSIONS`/`APPLICATIONS`, schema-correct but invented | SBI's real CBS, accessed via direct internal read-only access (APEX deployed by SBI itself — no AA, no third party) |
-| **New customer onboarding (Tier 1)** | Real — actual conversation, real product-page link construction, real Mechanism B link logic | Identical mechanism — nothing changes |
+| **New customer onboarding (Tier 1)** | Real — actual conversation + grounded document help, ending in a plain link to the product's official SBI page. Pre-filled deep links ("Mechanism B" from APEX_README §4) are deliberately *not* built — that pre-fill doesn't work against SBI's real pages (see §8b) | Identical — same conversation, same plain official link |
 | **Account creation confirmation** | Simulated — "Simulate 3 months of activity" button stands in for SBI's internal system notifying APEX an account is live | Real — an internal event (webhook-style) fires the moment SBI's own KYC process completes |
-| **Mid-onboarding drop-off (Tier 2)** | Simulated — "Simulate drop-off here" button seeds an `APPLICATIONS` row after a backend-touching step (Aadhaar/PAN verification), since that's the realistic point SBI's backend would actually know | Real — SBI's own onboarding system already has this record as a side effect of running verification steps |
+| **Mid-onboarding drop-off (Tier 2)** | Simulated — drop-off `APPLICATIONS` rows are seeded by the generator, stalled at a backend-touching step (Aadhaar/PAN verification), the realistic point SBI's backend would actually know; the login page's "Resume application" phone field signs in as one of them. Guide then confirms the context and helps — it does not resume the form on SBI's side | Real — SBI's own onboarding system already has this record as a side effect of running verification steps |
 | **Transaction/session data arrival** | Batch insert, instant, for demo pacing | Periodic internal sync (nightly/hourly) — never a per-transaction push; only account-level events are true real-time webhooks |
 | **ML scoring (stress, attrition, anomaly)** | Real computation, run on synthetic data — the actual model logic, not faked | Identical models, run on real data |
 | **Signal detection** | Real rule logic, running against synthetic data | Identical — same rules, real data |
 | **Analyser decision loop (per-customer code gate → LLM pick + compose)** | Fully real — deterministic act/wait/escalate + safe-set ethics, then a genuine LLM relevance pick + vernacular message | Identical — this never changes between demo and production |
 | **Authority levels 1–3** | Fully real — insight, one-tap deep link, standing-rule detection all genuinely work | Identical |
 | **Authority level 4 (autonomous + undo window)** | Not built — explicitly future-state | Requires SBI to grant scoped write access; doesn't exist yet in either |
-| **Execution (deep links)** | Real link construction; clicking through to SBI's actual site is possible but not the focus of the demo | Identical mechanism, real SBI pages |
+| **Execution (deep links)** | Real — the Analyser appends the customer's language (`?lang=`) to a product's real `landing_url`; clicking through to SBI's actual site is possible but not the focus of the demo. (Only a language param — no name/type pre-fill, which is the unbuilt Mechanism B above) | Identical mechanism, real SBI pages |
 | **Guide/Concierge channel** | Real — APEX's own website, live chat | Identical |
 | **Analyser outreach channel** | Real email (Resend/Brevo free tier) | WhatsApp/SMS — swapped because those require paid infrastructure, not because the logic differs |
-| **Customer authentication** | Simulated — phone + OTP tied to a synthetic customer record | Real SSO handoff from SBI's own login (APEX never sees a password) |
+| **Customer authentication** | Simulated — a "sign in as" dropdown picker for existing customers, plus a phone field where any number resumes a seeded drop-off (no real OTP step) | Real SSO handoff from SBI's own login (APEX never sees a password) |
 | **Customer-facing explanation ("why am I seeing this")** | Fully real — same constrained generation, same guardrails | Identical |
 | **Dismissal-count "memory"** | Fully real — reads the same `DECISIONS`/`ACTIONS`/`OUTCOMES` tables | Identical |
 | **Audit logging** | Fully real — every decision logged exactly as designed | Identical |
