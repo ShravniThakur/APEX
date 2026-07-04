@@ -7,6 +7,7 @@ export default function Overview() {
   const [err, setErr] = useState<string | null>(null)
   const [running, setRunning] = useState(false)
   const [reengaging, setReengaging] = useState(false)
+  const [reengageDays, setReengageDays] = useState(0)
 
   const load = () => api.stats().then(setStats).catch((e) => setErr(String(e)))
   useEffect(() => { load() }, [])
@@ -28,7 +29,7 @@ export default function Overview() {
     setReengaging(true)
     setErr(null)
     try {
-      await api.runReengage()
+      await api.runReengage(reengageDays)
       await load()
     } catch (e) {
       setErr(String(e))
@@ -46,11 +47,26 @@ export default function Overview() {
         title="Overview"
         subtitle="Live state of the Analyser pipeline"
         action={
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <label
+              className="flex items-center gap-1.5 text-sm text-slate-600"
+              title="Only revisit waits at least this many days old (0 = every wait now, demo pacing)"
+            >
+              <span>Wait age</span>
+              <input
+                type="number"
+                min={0}
+                value={reengageDays}
+                onChange={(e) => setReengageDays(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
+                disabled={running || reengaging}
+                className="w-16 rounded-lg border border-slate-300 px-2 py-2 text-sm disabled:opacity-50"
+              />
+              <span className="text-slate-400">days</span>
+            </label>
             <button
               onClick={reengage}
               disabled={running || reengaging}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
             >
               {reengaging ? 'Re-engaging…' : 'Re-engage waits'}
             </button>
@@ -66,7 +82,7 @@ export default function Overview() {
       />
       {running && (
         <p className="mb-4 text-sm text-amber-600">
-          Scoring → detecting → reasoning (the agent calls the LLM for each signal — this can take ~30–60s).
+          Scoring → detecting → reasoning → emailing acted messages (the agent calls the LLM per signal — this can take ~30–60s).
         </p>
       )}
       {reengaging && (

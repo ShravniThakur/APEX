@@ -144,9 +144,14 @@ export const api = {
   stats: () => get<Stats>('/stats'),
   customers: () => get<CustomerSummary[]>('/customers'),
   customer: (id: string) => get<CustomerDetail>(`/customers/${id}`),
-  runPipeline: () => post<{ ok: boolean }>('/pipeline/run-all'),
-  // days=0 revisits every WAIT now (demo pacing); production would schedule this daily.
-  runReengage: () => post<{ ok: boolean; reengaged: number; still_waiting: number }>('/pipeline/reengage?days=0'),
+  // send=true so the Analyser actually delivers the acted messages via Resend (to the demo sink).
+  runPipeline: () => post<{ ok: boolean }>('/pipeline/run-all?send=true'),
+  // days = only revisit waits at least this many days old (0 = every WAIT now, demo pacing);
+  // production would schedule this daily. send=true delivers the gentle re-engagement emails too.
+  runReengage: (days: number) =>
+    post<{ ok: boolean; reengaged: number; still_waiting: number; emails_sent: number }>(
+      `/pipeline/reengage?days=${days}&send=true`,
+    ),
   escalations: () => get<Escalation[]>('/escalations'),
   resolveEscalation: (id: string) => post<{ ok: boolean }>(`/escalations/${id}/resolve`),
 }
