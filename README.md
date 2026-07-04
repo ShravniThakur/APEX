@@ -389,9 +389,9 @@ The guiding rule: **simulate the plumbing, keep the brain real.** Every "simulat
 
 | Concern | Prototype (built) | Production |
 |---|---|---|
-| Data source | Synthetic generator | Read-only feed from SBI's CBS |
-| Data arrival | One-shot batch insert | Account webhooks + transaction streaming (Kafka) |
-| Cadence | On-demand, recompute fresh | Nightly sweep + on-demand Concierge |
+| Data source | Synthetic generator | Continuously-synced read-only view of SBI's CBS (read replica / curated feed) |
+| Data arrival | One-shot batch insert | **Automatic replication keeps the read view fresh — sufficient on its own.** Streaming (Kafka/webhooks) only if APEX holds its own store: transport, never triggers reasoning |
+| Cadence | On-demand, recompute fresh | Nightly sweep (Analyser) + on-demand live reads (Concierge/Guide) |
 | Dedup | Wipe & recompute | Incremental: signal lifecycle + cooldown + back-off |
 | Models | Stress (synthetic) + churn (real Kaggle) | Periodic retraining + drift monitoring |
 | LLM inference | Groq (free tier) | Self-hosted Ollama (data never leaves SBI) |
