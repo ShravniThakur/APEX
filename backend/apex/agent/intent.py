@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import json
 
-from ..config import GROQ_API_KEY, GROQ_MODEL
+from ..config import CHAT_MODEL, LLM_READY
 from ..database.db import SessionLocal
 from ..database.models import Signal
 from ._shared import get_client
@@ -43,7 +43,7 @@ _SYSTEM = (
 
 def _extract(messages: list[dict]) -> dict:
     """One best-effort LLM pass → {"intents": [...], "vulnerable": bool}. {} on any failure."""
-    if not GROQ_API_KEY:
+    if not LLM_READY:
         return {}
     convo = "\n".join(f"{m['role']}: {m['content']}"
                       for m in messages if m.get("role") in ("user", "assistant"))
@@ -51,7 +51,7 @@ def _extract(messages: list[dict]) -> dict:
         return {}
     try:
         resp = get_client().chat.completions.create(
-            model=GROQ_MODEL, temperature=0.1,
+            model=CHAT_MODEL, temperature=0.1,
             response_format={"type": "json_object"},
             messages=[{"role": "system", "content": _SYSTEM},
                       {"role": "user", "content": convo}],

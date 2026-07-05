@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 
-from ..config import GROQ_API_KEY, GROQ_MODEL
+from ..config import CHAT_MODEL, LLM_READY
 from ._shared import get_client
 from .prompts import (
     SYSTEM_PROMPT, build_explain_prompt, build_reengage_prompt, build_select_prompt,
@@ -17,12 +17,12 @@ from .prompts import (
 
 
 def _chat(user: str, temperature: float = 0.4, json_mode: bool = False) -> str:
-    if not GROQ_API_KEY:
+    if not LLM_READY:
         return ""
     try:
         kwargs = {"response_format": {"type": "json_object"}} if json_mode else {}
         resp = get_client().chat.completions.create(
-            model=GROQ_MODEL,
+            model=CHAT_MODEL,
             temperature=temperature,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},

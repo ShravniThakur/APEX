@@ -18,7 +18,7 @@ from typing import Any, TypedDict
 from langgraph.graph import END, StateGraph
 from langgraph.errors import GraphRecursionError
 
-from ..config import GROQ_MODEL
+from ..config import CHAT_MODEL
 from ..database.db import SessionLocal
 from ..database.models import Account, Customer, Holding, Product, Score, Signal, Transaction
 from . import guardrails
@@ -188,7 +188,7 @@ def node_agent(state: CState) -> dict:
     # prevents a runaway tool-calling loop (the GraphRecursionError otherwise).
     force_answer = state.get("tool_rounds", 0) >= MAX_TOOL_ROUNDS
     resp = get_client().chat.completions.create(
-        model=GROQ_MODEL, temperature=0.3,
+        model=CHAT_MODEL, temperature=0.3,
         tool_choice="none" if force_answer else "auto",
         tools=TOOLS_SCHEMA, messages=state["messages"],
     )

@@ -23,7 +23,7 @@ from typing import Any, TypedDict
 from langgraph.graph import END, StateGraph
 from langgraph.errors import GraphRecursionError
 
-from ..config import GROQ_API_KEY, GROQ_MODEL
+from ..config import CHAT_MODEL, LLM_READY
 from ..database.models import Application, Product
 from ._shared import get_client
 
@@ -56,7 +56,8 @@ you don't know it yet, mirror the language they write in.
 
 Use your tools — never guess:
 - To talk about what SBI offers, call list_products / get_product_details. Only ever share the \
-official link a tool returns; NEVER invent or type a URL yourself.
+official link a tool returns; NEVER invent or type a URL yourself. \
+- Give the official link to the customer every time you mention a product, so they can click through to the real SBI page. \
 - For "what documents do I need", call get_required_documents — never list documents from memory.
 - {identity_line}
 
@@ -184,7 +185,7 @@ class GState(TypedDict, total=False):
 def node_agent(state: GState) -> dict:
     force_answer = state.get("tool_rounds", 0) >= MAX_TOOL_ROUNDS
     resp = get_client().chat.completions.create(
-        model=GROQ_MODEL, temperature=0.4,
+        model=CHAT_MODEL, temperature=0.4,
         tool_choice="none" if force_answer else "auto",
         tools=TOOLS_SCHEMA, messages=state["messages"],
     )
@@ -229,8 +230,8 @@ guide_app = _build()
 
 
 def reply(messages: list[dict], db, identity: str | None = None) -> str:
-    if not GROQ_API_KEY:
-        return "The assistant isn't configured yet (missing GROQ_API_KEY)."
+    if not LLM_READY:
+        return "The assistant isn't configured yet (set LLM_PROVIDER=ollama, or add GROQ_API_KEY)."
     system = GUIDE_SYSTEM.format(identity_line=_IDENTITY_KNOWN if identity else _IDENTITY_ANON)
     convo = [{"role": "system", "content": system}]
     convo += [{"role": m["role"], "content": m["content"]}
